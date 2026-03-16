@@ -243,11 +243,13 @@ export default function App() {
 
       </header>
 
-      {/* Formatting toolbar — collapses smoothly via max-height */}
+      {/* Formatting toolbar — collapses smoothly via max-height.
+          overflow is visible when open so the style dropdown (absolutely positioned)
+          can escape the container; hidden only during/after collapse to clip content. */}
       <div
         style={{
           maxHeight: toolbarOpen ? '48px' : '0',
-          overflow: 'hidden',
+          overflow: toolbarOpen ? 'visible' : 'hidden',
           transition: 'max-height 150ms ease',
         }}
       >
