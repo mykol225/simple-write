@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { ActiveFormats, EditorHandle } from './editor-types'
 
 interface ToolbarProps {
@@ -33,21 +34,42 @@ interface StyleDropdownProps {
 
 function StyleDropdown({ value, onChange }: StyleDropdownProps) {
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
+  const [panelStyle, setPanelStyle] = useState<React.CSSProperties>({})
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const panelRef   = useRef<HTMLDivElement>(null)
 
+  // Close on outside click — must check both trigger and portal panel
   useEffect(() => {
     if (!open) return
     function handleDown(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      const t = e.target as Node
+      if (
+        !(triggerRef.current?.contains(t)) &&
+        !(panelRef.current?.contains(t))
+      ) {
+        setOpen(false)
+      }
     }
     document.addEventListener('mousedown', handleDown)
     return () => document.removeEventListener('mousedown', handleDown)
   }, [open])
 
+  function handleToggle(e: React.MouseEvent) {
+    e.preventDefault()
+    if (!open && triggerRef.current) {
+      // Position the panel below the trigger using fixed coords so it escapes
+      // the toolbar's overflow:hidden collapse container.
+      const r = triggerRef.current.getBoundingClientRect()
+      setPanelStyle({ position: 'fixed', top: r.bottom + 4, left: r.left, zIndex: 9999 })
+    }
+    setOpen(o => !o)
+  }
+
   return (
-    <div ref={ref} className="relative">
+    <div className="relative">
       <button
-        onMouseDown={(e) => { e.preventDefault(); setOpen(o => !o) }}
+        ref={triggerRef}
+        onMouseDown={handleToggle}
         aria-label="Text style"
         aria-expanded={open}
         aria-haspopup="listbox"
@@ -59,8 +81,14 @@ function StyleDropdown({ value, onChange }: StyleDropdownProps) {
         </svg>
       </button>
 
-      {open && (
-        <div role="listbox" aria-label="Text style" className="absolute top-full left-0 mt-1 z-50 bg-white border border-border rounded-md shadow-medium py-1 min-w-[160px]">
+      {open && createPortal(
+        <div
+          ref={panelRef}
+          role="listbox"
+          aria-label="Text style"
+          style={panelStyle}
+          className="bg-white border border-border rounded-md shadow-medium py-1 min-w-[160px]"
+        >
           {STYLE_OPTIONS.map(opt => (
             <button
               key={opt.value}
@@ -78,7 +106,8 @@ function StyleDropdown({ value, onChange }: StyleDropdownProps) {
               {opt.label}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
