@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.1] — 2026-03-16
+
+### Changed
+- Editor now uses warm stone design tokens from shared module (theme, highlight, widget styles)
+- Removed Figma capture script from index.html
+
 ## [1.1.0] — 2026-03-16
 
 ### Added
