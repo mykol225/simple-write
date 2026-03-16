@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.0] — 2026-03-16
+
+### Added
+- Load Inter font from Google Fonts via preconnect + stylesheet links in index.html
+
 ## 0.5 Alpha — current
 
 ### Added (Phases 3–7)
