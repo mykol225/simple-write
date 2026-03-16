@@ -341,6 +341,12 @@ const Editor = forwardRef<EditorHandle, Props>(function Editor(
     })
 
     viewRef.current = view
+    // Prevent the contenteditable from capturing focus on mount — the user
+    // should click to focus rather than having the cursor land on the title line
+    // and briefly expose its raw markdown syntax.
+    // requestAnimationFrame ensures the blur fires after the initial paint,
+    // closing a narrow browser race where the contenteditable refocuses on layout.
+    requestAnimationFrame(() => view.contentDOM.blur())
 
     return () => {
       if (debounceRef.current) {
