@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.0] — 2026-03-16
+
+### Added
+- Style dropdown in toolbar now renders each option (H1–H3, Paragraph, Quote) at its actual font size and weight for visual hierarchy preview
+- Copy path button in Document Info panel — copies the full file path to clipboard with inline confirmation
+
+### Fixed
+- Editor no longer auto-focuses on document open (title `#` syntax no longer briefly exposed on load)
+- Heading sizes now have clear hierarchy: H1 1.8em/700, H2 1.4em/600, H3 1.15em/600
+- Bullet list hanging indent doubled (0.9em → 1.8em) for better readability on nested lists
+- Bullet glyph baseline alignment improved via explicit line-height matching the editor scroller
+
 ## [1.1.1] — 2026-03-16
 
 ### Changed
