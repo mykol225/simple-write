@@ -1,0 +1,2 @@
+# Ignore feedback records — they contain personal/session data
+*.json

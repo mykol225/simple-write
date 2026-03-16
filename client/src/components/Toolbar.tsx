@@ -4,21 +4,85 @@ import type { ActiveFormats, EditorHandle } from './editor-types'
 interface ToolbarProps {
   editorRef: React.RefObject<EditorHandle>
   activeFormats: ActiveFormats
-  onDocInfoClick: () => void
   onOpenFile: () => void
 }
 
-// ── Style dropdown options ────────────────────────────────────────────────────
+// ── Style dropdown ────────────────────────────────────────────────────────────
+// Custom dropdown that renders each option at the font size/weight it represents.
+// Uses onMouseDown + e.preventDefault() to avoid stealing editor focus.
 
-const HEADING_OPTIONS = [
-  { value: '0', label: 'Paragraph' },
-  { value: '1', label: 'Heading 1' },
-  { value: '2', label: 'Heading 2' },
-  { value: '3', label: 'Heading 3' },
-  { value: '4', label: 'Heading 4' },
-  { value: '5', label: 'Heading 5' },
-  { value: '6', label: 'Heading 6' },
+const STYLE_OPTIONS: Array<{ value: string; label: string; style?: React.CSSProperties }> = [
+  { value: '0',          label: 'Paragraph' },
+  { value: '1',          label: 'Heading 1',  style: { fontSize: '1.5em',  fontWeight: '700' } },
+  { value: '2',          label: 'Heading 2',  style: { fontSize: '1.25em', fontWeight: '600' } },
+  { value: '3',          label: 'Heading 3',  style: { fontSize: '1.05em', fontWeight: '600' } },
+  { value: '4',          label: 'Heading 4',  style: { fontWeight: '600' } },
+  { value: '5',          label: 'Heading 5',  style: { fontWeight: '600' } },
+  { value: '6',          label: 'Heading 6',  style: { fontWeight: '600' } },
+  { value: 'blockquote', label: 'Quote',       style: { fontStyle: 'italic' } },
 ]
+
+function getStyleLabel(value: string): string {
+  return STYLE_OPTIONS.find(o => o.value === value)?.label ?? 'Paragraph'
+}
+
+interface StyleDropdownProps {
+  value: string
+  onChange: (val: string) => void
+}
+
+function StyleDropdown({ value, onChange }: StyleDropdownProps) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function handleDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleDown)
+    return () => document.removeEventListener('mousedown', handleDown)
+  }, [open])
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onMouseDown={(e) => { e.preventDefault(); setOpen(o => !o) }}
+        aria-label="Text style"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        className="h-7 px-2 text-body text-text-secondary bg-white rounded-sm hover:bg-surface-subtle transition-colors duration-micro min-w-[90px] text-left flex items-center gap-1 select-none"
+      >
+        <span className="flex-1 truncate">{getStyleLabel(value)}</span>
+        <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true" className="shrink-0 opacity-50">
+          <path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+
+      {open && (
+        <div role="listbox" aria-label="Text style" className="absolute top-full left-0 mt-1 z-50 bg-white border border-border rounded-md shadow-medium py-1 min-w-[160px]">
+          {STYLE_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              role="option"
+              aria-selected={value === opt.value}
+              onMouseDown={(e) => { e.preventDefault(); onChange(opt.value); setOpen(false) }}
+              style={opt.style}
+              className={[
+                'w-full text-left px-3 py-1 leading-snug transition-colors duration-micro select-none',
+                value === opt.value
+                  ? 'text-accent bg-accent-light'
+                  : 'text-text-secondary hover:bg-surface-subtle',
+              ].join(' ')}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 // ── ToolbarButton ─────────────────────────────────────────────────────────────
 // All toolbar interactions use onMouseDown + e.preventDefault() so the editor
@@ -147,8 +211,7 @@ export default function Toolbar({ editorRef, activeFormats, onOpenFile }: Toolba
   // Blockquote isn't a heading level, so we use a special sentinel
   const styleValue = activeFormats.blockquote ? 'blockquote' : String(activeFormats.headingLevel)
 
-  function handleStyleChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const val = e.target.value
+  function handleStyleChange(val: string) {
     if (val === 'blockquote') {
       editorRef.current?.toggleBlockquote()
     } else {
@@ -170,18 +233,7 @@ export default function Toolbar({ editorRef, activeFormats, onOpenFile }: Toolba
       <Divider />
 
       {/* ── Style dropdown ─────────────────────────────────────── */}
-      <select
-        value={styleValue}
-        onChange={handleStyleChange}
-        onMouseDown={e => e.stopPropagation()} // don't trigger editor-focus logic
-        className="text-body text-text-secondary bg-white px-2 h-7 mr-1 focus:outline-none cursor-pointer"
-        aria-label="Text style"
-      >
-        {HEADING_OPTIONS.map(o => (
-          <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
-        <option value="blockquote">Quote</option>
-      </select>
+      <StyleDropdown value={styleValue} onChange={handleStyleChange} />
 
       <Divider />
 

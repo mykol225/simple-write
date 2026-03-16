@@ -1,9 +1,15 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import path from 'path'
 
 export default defineConfig({
   root: 'client',
   plugins: [react()],
+  resolve: {
+    alias: {
+      '@shared': path.resolve(__dirname, '../simple-shared/src'),
+    },
+  },
   server: {
     port: 3004,
     strictPort: true, // fail fast instead of silently stealing another app's port

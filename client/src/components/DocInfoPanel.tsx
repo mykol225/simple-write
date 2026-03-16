@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Frontmatter } from '../hooks/useDocument'
 import TagsEditor from './TagsEditor'
 
 interface DocInfoPanelProps {
   frontmatter: Frontmatter
+  filePath: string | null
   onSave: (overrides: Partial<Frontmatter>) => Promise<void>
   onClose: () => void
   isOpen: boolean
@@ -41,9 +42,16 @@ const inputClass =
 
 // ── DocInfoPanel ──────────────────────────────────────────────────────────────
 
-export default function DocInfoPanel({ frontmatter, onSave, onClose, isOpen }: DocInfoPanelProps) {
+export default function DocInfoPanel({ frontmatter, filePath, onSave, onClose, isOpen }: DocInfoPanelProps) {
   // Local draft — re-initialized from frontmatter whenever the panel opens
   const [draft, setDraft] = useState<Partial<Frontmatter>>({})
+  const [copied, setCopied] = useState(false)
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout>>()
+
+  // Clear copy confirmation timer on unmount to avoid state update on an unmounted component
+  useEffect(() => {
+    return () => clearTimeout(copyTimeoutRef.current)
+  }, [])
 
   useEffect(() => {
     if (isOpen) {
@@ -59,6 +67,15 @@ export default function DocInfoPanel({ frontmatter, onSave, onClose, isOpen }: D
 
   function handleBlur() {
     onSave(draft).catch(console.error)
+  }
+
+  function handleCopyPath() {
+    if (!filePath) return
+    navigator.clipboard.writeText(filePath).then(() => {
+      setCopied(true)
+      clearTimeout(copyTimeoutRef.current)
+      copyTimeoutRef.current = setTimeout(() => setCopied(false), 1500)
+    }).catch(console.error)
   }
 
   function handleTagsChange(tags: string[]) {
@@ -155,6 +172,19 @@ export default function DocInfoPanel({ frontmatter, onSave, onClose, isOpen }: D
           <Field label="Modified">
             <span className="text-body text-text-tertiary">{formatDate(frontmatter.modified)}</span>
           </Field>
+
+          {filePath && (
+            <button
+              onClick={handleCopyPath}
+              className="flex items-center gap-2 text-label text-text-tertiary hover:text-accent transition-colors duration-micro py-1 group"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              <span>{copied ? 'Copied!' : 'Copy path'}</span>
+            </button>
+          )}
 
         </div>
       </div>

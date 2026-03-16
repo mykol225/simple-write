@@ -12,6 +12,7 @@ import Landing from './components/Landing'
 import Toast from './components/Toast'
 import type { ToastData } from './components/Toast'
 import { addToRecents } from './utils/recents'
+import StatusBar from '@shared/components/StatusBar'
 
 // Type declaration for the globally-loaded chat-widget.js
 declare const ChatWidget: {
@@ -183,29 +184,27 @@ export default function App() {
   return (
     <div className="h-full flex flex-col bg-white">
 
-      {/* Top bar — brand left · title center · save status right */}
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center px-4 py-2.5 border-b border-border shrink-0 gap-4">
+      {/* Top bar — logo left · title center · controls right */}
+      <header className="shrink-0 h-12 bg-white border-b border-[#ebe9e5] relative">
 
-        {/* Left: app identity */}
-        <div className="flex items-center gap-2">
-          <span className="text-subtitle font-semibold text-text-primary whitespace-nowrap">
-            Simple Write
-          </span>
-          <span className="text-label font-medium text-text-tertiary whitespace-nowrap">0.5</span>
-          <span className="text-caption font-medium bg-accent-light text-accent px-1.5 py-0.5 rounded-full whitespace-nowrap">
-            Alpha
+        {/* Left: logo · version · badge */}
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pl-4">
+          <img src="/logo.png" alt="Simple Write" className="h-5 w-auto" />
+          <span className="text-[12px] text-[#9ca3af] font-normal">0.5</span>
+          <span className="text-[11px] font-medium text-[#92400e] bg-[#fef3c7] px-1.5 py-[2px] rounded-full leading-none whitespace-nowrap">Alpha</span>
+        </div>
+
+        {/* Center: document title — truly centered in the bar */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-4">
+          <span className="text-[12px] text-[#a8a28b] whitespace-nowrap">
+            {frontmatter?.title || filePath.split('/').pop()}
           </span>
         </div>
 
-        {/* Center: document title */}
-        <span className="text-label font-medium text-text-secondary truncate max-w-xs text-center">
-          {frontmatter?.title || filePath.split('/').pop()}
-        </span>
-
-        {/* Right: save status · doc info · toolbar toggle */}
-        <div className="flex items-center justify-end gap-1">
+        {/* Right: save status · info · toolbar toggle */}
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-[9px] pr-4">
           <span
-            className={`text-caption text-text-tertiary transition-opacity duration-standard mr-2 ${
+            className={`text-[11px] text-[#9ca3af] transition-opacity duration-standard ${
               saveStatus === 'idle' ? 'opacity-0' : 'opacity-100'
             }`}
           >
@@ -217,23 +216,22 @@ export default function App() {
             onClick={() => setDocInfoOpen(true)}
             title="Document info"
             aria-label="Document info"
-            className="flex items-center justify-center w-7 h-7 rounded-sm text-text-tertiary hover:bg-surface-subtle hover:text-text-secondary transition-colors duration-micro"
+            className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[#80786b] hover:bg-[#f5f3f0] transition-colors duration-micro"
           >
-            <span className="text-body leading-none">ⓘ</span>
+            <span className="text-[13px] font-semibold leading-none">ⓘ</span>
           </button>
 
-          {/* Controls bar toggle */}
+          {/* Toolbar toggle */}
           <button
             onClick={() => setToolbarOpen(o => !o)}
             title={toolbarOpen ? 'Hide controls' : 'Show controls'}
             aria-label={toolbarOpen ? 'Hide controls' : 'Show controls'}
-            className={`flex items-center justify-center w-7 h-7 rounded-sm transition-colors duration-micro ${
+            className={`w-7 h-7 rounded-[6px] flex items-center justify-center transition-colors duration-micro ${
               toolbarOpen
-                ? 'bg-accent-light text-accent'
-                : 'text-text-tertiary hover:bg-surface-subtle hover:text-text-secondary'
+                ? 'bg-[#fffcf1] text-[#92400e]'
+                : 'text-[#80786b] hover:bg-[#f5f3f0]'
             }`}
           >
-            {/* Sliders / controls icon */}
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
               <path d="M1 3h12M1 7h12M1 11h12" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round"/>
               <circle cx="4"  cy="3"  r="1.5" fill="white" stroke="currentColor" strokeWidth="1.25"/>
@@ -243,7 +241,7 @@ export default function App() {
           </button>
         </div>
 
-      </div>
+      </header>
 
       {/* Formatting toolbar — collapses smoothly via max-height */}
       <div
@@ -285,6 +283,7 @@ export default function App() {
 
       <DocInfoPanel
         frontmatter={frontmatter}
+        filePath={filePath}
         onSave={saveFrontmatter}
         onClose={() => setDocInfoOpen(false)}
         isOpen={docInfoOpen}
@@ -298,6 +297,14 @@ export default function App() {
         />
       )}
 
+      <StatusBar
+        appName="Simple Write"
+        getContext={() => ({
+          file:       filePath ?? null,
+          saveStatus,
+          wordCount:  body ? body.trim().split(/\s+/).filter(Boolean).length : 0,
+        })}
+      />
     </div>
   )
 }
