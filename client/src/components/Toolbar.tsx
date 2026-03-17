@@ -221,7 +221,7 @@ export default function Toolbar({ editorRef, activeFormats, onOpenFile }: Toolba
   }
 
   return (
-    <div className="flex items-center gap-0.5 px-4 py-1.5 border-b border-border bg-white shrink-0 select-none">
+    <div className="flex items-center gap-0.5 px-4 py-1.5 border-b border-border bg-white shrink-0 select-none overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 
       {/* ── Open file — far left ────────────────────────────────── */}
       <TBtn label="Open file" title="Open file" onMouseDown={onOpenFile}>
