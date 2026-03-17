@@ -310,6 +310,7 @@ const Editor = forwardRef<EditorHandle, Props>(function Editor(
             ...historyKeymap,
           ]),
           EditorView.lineWrapping,
+          EditorView.contentAttributes.of({ spellcheck: 'true' }),
           markdown({
             base: markdownLanguage,
             extensions: [GFM, Subscript, Superscript],
