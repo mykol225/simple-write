@@ -78,6 +78,15 @@ export default function DocInfoPanel({ frontmatter, filePath, onSave, onClose, i
     }).catch(console.error)
   }
 
+  function handleViewInFinder() {
+    if (!filePath) return
+    fetch('/api/reveal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: filePath }),
+    }).catch(console.error)
+  }
+
   function handleTagsChange(tags: string[]) {
     const next = { ...draft, tags }
     setDraft(next)
@@ -174,16 +183,28 @@ export default function DocInfoPanel({ frontmatter, filePath, onSave, onClose, i
           </Field>
 
           {filePath && (
-            <button
-              onClick={handleCopyPath}
-              className="flex items-center gap-2 text-label text-text-tertiary hover:text-accent transition-colors duration-micro py-1 group"
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-              </svg>
-              <span>{copied ? 'Copied!' : 'Copy path'}</span>
-            </button>
+            <div className="flex flex-col gap-1">
+              <button
+                onClick={handleCopyPath}
+                className="flex items-center gap-2 text-label text-text-tertiary hover:text-accent transition-colors duration-micro py-1"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+                <span>{copied ? 'Copied!' : 'Copy path'}</span>
+              </button>
+              <button
+                onClick={handleViewInFinder}
+                className="flex items-center gap-2 text-label text-text-tertiary hover:text-accent transition-colors duration-micro py-1"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="2" y="3" width="20" height="14" rx="2"/>
+                  <path d="M8 21h8M12 17v4"/>
+                </svg>
+                <span>View in Finder</span>
+              </button>
+            </div>
           )}
 
         </div>

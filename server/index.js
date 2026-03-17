@@ -322,6 +322,18 @@ function updateWatcher(filePath) {
 // ── GET /api/health ───────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => res.json({ ok: true, port: PORT }))
 
+// ── POST /api/reveal ──────────────────────────────────────────────────────
+// Reveals a file or folder in macOS Finder using `open -R <path>`.
+app.post('/api/reveal', (req, res) => {
+  const { path: targetPath } = req.body
+  if (!targetPath || typeof targetPath !== 'string') {
+    return res.status(400).json({ error: 'path is required' })
+  }
+  const child = spawn('open', ['-R', targetPath], { detached: true, stdio: 'ignore' })
+  child.unref()
+  res.json({ ok: true })
+})
+
 // ── POST /api/feedback ────────────────────────────────────────────────────
 // Saves feedback JSON to feedback/YYYY-MM-DD-HH-MM-SS.json and, for urgent
 // signals (urgency 1–4), spawns the triage agent asynchronously.
