@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.3.0] — 2026-03-17
+
+### Added
+- File search filter in the file browser — filters the file list in real time as you type
+- View in Finder button in the Document Info panel
+- Close document button (×) in the header — returns to the landing screen
+
+### Fixed
+- File browser list now anchors to the top of the panel instead of centering vertically
+
 ## [1.2.0] — 2026-03-16
 
 ### Added
