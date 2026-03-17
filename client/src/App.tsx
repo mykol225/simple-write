@@ -13,12 +13,7 @@ import Toast from './components/Toast'
 import type { ToastData } from './components/Toast'
 import { addToRecents } from './utils/recents'
 import StatusBar from '@shared/components/StatusBar'
-
-// Type declaration for the globally-loaded chat-widget.js
-declare const ChatWidget: {
-  init(opts: { endpoint: string; getViewState: () => unknown }): void
-  setViewState(state: unknown): void
-} | undefined
+import ChatWidget from '@shared/components/ChatWidget'
 
 export default function App() {
   // filePath is mutable — changes when the user opens a different file.
@@ -118,30 +113,6 @@ export default function App() {
       modified: frontmatter.modified,
     })
   }, [filePath, isLoading, error, frontmatter.title, frontmatter.modified])
-
-  // ── Chat widget ───────────────────────────────────────────────────────────
-  // Initialise once on mount. getViewState reads from stable refs so it always
-  // returns current content without needing to be recreated.
-  // The widget is hidden (never initialised) when ANTHROPIC_API_KEY is not set.
-  useEffect(() => {
-    if (typeof ChatWidget === 'undefined') return
-    fetch('/api/chat')
-      .then(r => r.json())
-      .then(({ enabled }) => {
-        if (!enabled) return
-        ChatWidget.init({
-          endpoint: '/api/chat',
-          getViewState: () => ({
-            document:     bodyRef.current,
-            title:        frontmatterRef.current.title,
-            status:       frontmatterRef.current.status,
-            project:      frontmatterRef.current.project,
-            selectedText: editorRef.current?.getSelection() ?? '',
-          }),
-        })
-      })
-      .catch(() => { /* no chat if server unreachable */ })
-  }, []) // run once — getViewState always reads fresh data via refs
 
   // ── No file open — show Landing ───────────────────────────────────────────
 
@@ -320,6 +291,25 @@ export default function App() {
           saveStatus,
           wordCount:  body ? body.trim().split(/\s+/).filter(Boolean).length : 0,
         })}
+      />
+
+      <ChatWidget
+        title="Writing assistant"
+        getContext={() => {
+          const fm = frontmatterRef.current
+          const parts: string[] = [
+            `File: ${filePath ?? 'Untitled'}`,
+            fm.title    ? `Title: ${fm.title}`     : '',
+            fm.status   ? `Status: ${fm.status}`   : '',
+            fm.project  ? `Project: ${fm.project}` : '',
+            '',
+            'Content:',
+            bodyRef.current || '(empty document)',
+          ]
+          const sel = editorRef.current?.getSelection()
+          if (sel) parts.push(`\nSelected text:\n${sel}`)
+          return parts.filter(l => l !== '').join('\n')
+        }}
       />
     </div>
   )

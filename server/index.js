@@ -177,33 +177,24 @@ app.get('/api/chat', (_req, res) => {
 })
 
 // POST /api/chat
-// Body: { messages: [{role, content}][], viewState: { document, title, ... } }
+// Body: { messages: [{role, content}][], context: string }
 // Streams the assistant reply token-by-token via SSE.
 app.post('/api/chat', async (req, res) => {
   if (!process.env.ANTHROPIC_API_KEY) {
     return res.status(503).json({ error: 'ANTHROPIC_API_KEY is not configured' })
   }
 
-  const { messages = [], viewState = {} } = req.body
+  const { messages = [], context = '' } = req.body
 
-  // Build a system prompt that gives the AI full document context
-  const { document: doc, title, status, project, selectedText } = viewState
-  const parts = [
+  // Build a system prompt from the plain-text context the client provides
+  const system = [
     'You are a writing assistant embedded in Simple Write, a focused markdown editor.',
     'Help the user with their document — suggest edits, improve clarity, answer questions about the content.',
     '',
-    `Document title: ${title || 'Untitled'}`,
-    status  ? `Status: ${status}`   : '',
-    project ? `Project: ${project}` : '',
-    '',
-    '── Document content ──',
-    doc || '(empty document)',
-    '── End of document ──',
-    selectedText ? `\nThe user currently has this text selected:\n"${selectedText}"` : '',
+    context ? `── Context ──\n${context}\n── End of context ──` : '(no document context provided)',
     '',
     'Keep replies concise and practical. Use markdown formatting where helpful.',
-  ]
-  const system = parts.filter(Boolean).join('\n')
+  ].join('\n')
 
   // Set SSE headers before streaming begins
   res.setHeader('Content-Type',  'text/event-stream')

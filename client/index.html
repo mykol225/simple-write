@@ -12,11 +12,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <!-- marked.js — used by chat-widget.js to render assistant responses as HTML -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <!-- Chat widget — vanilla JS, loaded before the React bundle so ChatWidget
-         is available as a global when App.tsx calls init() -->
-    <script src="/chat-widget.js"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
