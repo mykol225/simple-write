@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.1] — 2026-03-16
+
+### Chore
+- Added tsconfig paths so TypeScript can type-check shared components (react, @codemirror/*, @lezer/*)
+
 ## [1.3.0] — 2026-03-17
 
 ### Added
