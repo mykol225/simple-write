@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.4.1] — 2026-03-17
+
+### Fixed
+- Toolbar buttons now scroll horizontally at narrow window widths instead of clipping
+
 ## [1.4.0] — 2026-03-16
 
 ### Added
