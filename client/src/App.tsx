@@ -187,11 +187,25 @@ export default function App() {
       {/* Top bar — logo left · title center · controls right */}
       <header className="shrink-0 h-12 bg-white border-b border-[#ebe9e5] relative">
 
-        {/* Left: logo · version · badge */}
+        {/* Left: logo · version · badge · close */}
         <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pl-4">
           <img src="/logo.png" alt="Simple Write" className="h-5 w-auto" />
           <span className="text-[12px] text-[#9ca3af] font-normal">0.5</span>
           <span className="text-[11px] font-medium text-[#92400e] bg-[#fef3c7] px-1.5 py-[2px] rounded-full leading-none whitespace-nowrap">Alpha</span>
+          <button
+            onClick={() => {
+              history.pushState({}, '', window.location.pathname)
+              setFilePath(null)
+            }}
+            title="Close document"
+            className="ml-1 w-5 h-5 flex items-center justify-center text-[#9ca3af] hover:text-[#6b7280] hover:bg-[#f5f3f0] rounded transition-colors"
+            aria-label="Close document"
+          >
+            <svg width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden="true">
+              <line x1="1" y1="1" x2="8" y2="8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+              <line x1="8" y1="1" x2="1" y2="8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+            </svg>
+          </button>
         </div>
 
         {/* Center: document title — truly centered in the bar */}
