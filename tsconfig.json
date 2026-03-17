@@ -10,7 +10,13 @@
     "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@shared/*": ["../simple-shared/src/*"]
+      "@shared/*": ["../simple-shared/src/*"],
+      // These redirect TypeScript when type-checking simple-shared files,
+      // which have no node_modules of their own.
+      "react": ["./node_modules/@types/react/index.d.ts"],
+      "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime.d.ts"],
+      "@codemirror/*": ["./node_modules/@codemirror/*"],
+      "@lezer/*": ["./node_modules/@lezer/*"]
     }
   },
   "include": ["client/src"]
