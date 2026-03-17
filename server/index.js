@@ -233,6 +233,63 @@ app.post('/api/chat', async (req, res) => {
   }
 })
 
+// ── GET /api/health ───────────────────────────────────────────────────────
+app.get('/api/health', (_req, res) => res.json({ ok: true, port: PORT }))
+
+// ── POST /api/reveal ──────────────────────────────────────────────────────
+// Reveals a file or folder in macOS Finder using `open -R <path>`.
+app.post('/api/reveal', (req, res) => {
+  const { path: targetPath } = req.body
+  if (!targetPath || typeof targetPath !== 'string') {
+    return res.status(400).json({ error: 'path is required' })
+  }
+  const child = spawn('open', ['-R', targetPath], { detached: true, stdio: 'ignore' })
+  child.unref()
+  res.json({ ok: true })
+})
+
+// ── POST /api/feedback ────────────────────────────────────────────────────
+// Saves feedback JSON to feedback/YYYY-MM-DD-HH-MM-SS.json and, for urgent
+// signals (urgency 1–4), spawns the triage agent asynchronously.
+app.post('/api/feedback', (req, res) => {
+  const { urgency, comment, app: appName, url, selectedText, pickedElement, appContext } = req.body
+
+  const now      = new Date()
+  const stamp    = now.toISOString().replace(/[:.]/g, '-').slice(0, 19)
+  const feedDir  = resolve(dirname(fileURLToPath(import.meta.url)), '../feedback')
+  const feedFile = resolve(feedDir, `${stamp}.json`)
+
+  const isUrgent = urgency !== null && urgency !== undefined && urgency <= 4
+  const record   = {
+    timestamp:    now.toISOString(),
+    app:          appName ?? 'Simple Write',
+    urgency:      urgency ?? null,
+    comment:      comment ?? '',
+    url:          url ?? '',
+    selectedText: selectedText ?? '',
+    pickedElement: pickedElement ?? null,
+    appContext:   appContext ?? {},
+    status:       isUrgent ? 'pending' : 'analytics',
+  }
+
+  try {
+    mkdirSync(feedDir, { recursive: true })
+    writeFileSync(feedFile, JSON.stringify(record, null, 2))
+  } catch (err) {
+    console.error('Failed to write feedback:', err)
+    return res.status(500).json({ ok: false })
+  }
+
+  res.json({ ok: true })
+
+  // Spawn triage agent asynchronously for urgent feedback — fire and forget
+  if (isUrgent) {
+    const triageScript = resolve(dirname(fileURLToPath(import.meta.url)), '../../simple-shared/scripts/triage.js')
+    const child = spawn('node', [triageScript, feedFile], { detached: true, stdio: 'ignore' })
+    child.unref()
+  }
+})
+
 // Fallback — SPA route for production
 app.get('*', (_req, res) => {
   const indexPath = resolve(__dirname, '../dist/index.html')
@@ -309,63 +366,6 @@ function updateWatcher(filePath) {
     broadcast({ type: 'file:deleted' })
   })
 }
-
-// ── GET /api/health ───────────────────────────────────────────────────────
-app.get('/api/health', (_req, res) => res.json({ ok: true, port: PORT }))
-
-// ── POST /api/reveal ──────────────────────────────────────────────────────
-// Reveals a file or folder in macOS Finder using `open -R <path>`.
-app.post('/api/reveal', (req, res) => {
-  const { path: targetPath } = req.body
-  if (!targetPath || typeof targetPath !== 'string') {
-    return res.status(400).json({ error: 'path is required' })
-  }
-  const child = spawn('open', ['-R', targetPath], { detached: true, stdio: 'ignore' })
-  child.unref()
-  res.json({ ok: true })
-})
-
-// ── POST /api/feedback ────────────────────────────────────────────────────
-// Saves feedback JSON to feedback/YYYY-MM-DD-HH-MM-SS.json and, for urgent
-// signals (urgency 1–4), spawns the triage agent asynchronously.
-app.post('/api/feedback', (req, res) => {
-  const { urgency, comment, app: appName, url, selectedText, pickedElement, appContext } = req.body
-
-  const now      = new Date()
-  const stamp    = now.toISOString().replace(/[:.]/g, '-').slice(0, 19)
-  const feedDir  = resolve(dirname(fileURLToPath(import.meta.url)), '../feedback')
-  const feedFile = resolve(feedDir, `${stamp}.json`)
-
-  const isUrgent = urgency !== null && urgency !== undefined && urgency <= 4
-  const record   = {
-    timestamp:    now.toISOString(),
-    app:          appName ?? 'Simple Write',
-    urgency:      urgency ?? null,
-    comment:      comment ?? '',
-    url:          url ?? '',
-    selectedText: selectedText ?? '',
-    pickedElement: pickedElement ?? null,
-    appContext:   appContext ?? {},
-    status:       isUrgent ? 'pending' : 'analytics',
-  }
-
-  try {
-    mkdirSync(feedDir, { recursive: true })
-    writeFileSync(feedFile, JSON.stringify(record, null, 2))
-  } catch (err) {
-    console.error('Failed to write feedback:', err)
-    return res.status(500).json({ ok: false })
-  }
-
-  res.json({ ok: true })
-
-  // Spawn triage agent asynchronously for urgent feedback — fire and forget
-  if (isUrgent) {
-    const triageScript = resolve(dirname(fileURLToPath(import.meta.url)), '../../simple-shared/scripts/triage.js')
-    const child = spawn('node', [triageScript, feedFile], { detached: true, stdio: 'ignore' })
-    child.unref()
-  }
-})
 
 server.listen(PORT, () => {
   console.log(`Simple Write running at http://localhost:${PORT}`)
