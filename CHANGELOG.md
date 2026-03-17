@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.0] — 2026-03-16
+
+### Added
+- Shared ChatWidget React component replaces vanilla chat-widget.js — no CDN dependency
+- Browser native spell check enabled in the editor (red underlines for misspelled words)
+### Changed
+- Chat server endpoint now accepts context string instead of viewState object
+
 ## [1.3.1] — 2026-03-16
 
 ### Chore
