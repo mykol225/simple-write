@@ -25,6 +25,7 @@ export default function FileBrowser({ isOpen, onClose, onOpenFile }: FileBrowser
   const [files, setFiles]   = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError]   = useState<string | null>(null)
+  const [search, setSearch] = useState('')
   const [newName, setNewName] = useState('')
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
@@ -38,6 +39,7 @@ export default function FileBrowser({ isOpen, onClose, onOpenFile }: FileBrowser
   }, [isOpen, dir])
 
   async function browse(target: string) {
+    setSearch('')
     setLoading(true)
     setError(null)
     try {
@@ -84,6 +86,10 @@ export default function FileBrowser({ isOpen, onClose, onOpenFile }: FileBrowser
     }
   }
 
+  // Search filter — applied only to files (not dirs, since dirs are for navigation)
+  const q = search.toLowerCase()
+  const filteredFiles = q ? files.filter(f => f.toLowerCase().includes(q)) : files
+
   // Show the last two path segments so the header doesn't overflow
   const displayPath = dir
     ? dir.split('/').slice(-2).join('/')
@@ -109,32 +115,46 @@ export default function FileBrowser({ isOpen, onClose, onOpenFile }: FileBrowser
         <div className="pointer-events-auto w-full max-w-lg bg-white rounded-lg shadow-elevated flex flex-col max-h-[70vh]">
 
           {/* Header */}
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
-            {/* Back button */}
-            {dir && dir !== parentDir(dir) && (
+          <div className="flex flex-col border-b border-border shrink-0">
+            <div className="flex items-center gap-3 px-4 py-3">
+              {/* Back button */}
+              {dir && dir !== parentDir(dir) && (
+                <button
+                  onClick={() => setDir(parentDir(dir))}
+                  className="text-text-tertiary hover:text-text-secondary transition-colors duration-micro shrink-0"
+                  title="Go up one level"
+                  aria-label="Go up"
+                >
+                  ←
+                </button>
+              )}
+              <span className="flex-1 text-label font-medium text-text-tertiary truncate" title={dir}>
+                {displayPath}
+              </span>
               <button
-                onClick={() => setDir(parentDir(dir))}
+                onClick={onClose}
                 className="text-text-tertiary hover:text-text-secondary transition-colors duration-micro shrink-0"
-                title="Go up one level"
-                aria-label="Go up"
+                aria-label="Close"
               >
-                ←
+                ✕
               </button>
+            </div>
+            {/* Search filter — only shown when directory has files */}
+            {files.length > 0 && (
+              <div className="px-4 pb-3">
+                <input
+                  type="text"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Filter files…"
+                  className="w-full text-body text-text-primary border border-border rounded-sm px-2.5 py-1.5 focus:outline-none focus:border-accent transition-colors duration-standard"
+                />
+              </div>
             )}
-            <span className="flex-1 text-label font-medium text-text-tertiary truncate" title={dir}>
-              {displayPath}
-            </span>
-            <button
-              onClick={onClose}
-              className="text-text-tertiary hover:text-text-secondary transition-colors duration-micro shrink-0"
-              aria-label="Close"
-            >
-              ✕
-            </button>
           </div>
 
-          {/* List */}
-          <div className="flex-1 overflow-y-auto">
+          {/* List — flex-col anchors content to top when list is shorter than panel */}
+          <div className="flex-1 overflow-y-auto flex flex-col justify-start">
             {loading && (
               <p className="text-body text-text-tertiary px-4 py-6 text-center">Loading…</p>
             )}
@@ -143,6 +163,9 @@ export default function FileBrowser({ isOpen, onClose, onOpenFile }: FileBrowser
             )}
             {!loading && !error && dirs.length === 0 && files.length === 0 && (
               <p className="text-body text-text-tertiary px-4 py-6 text-center">No files found</p>
+            )}
+            {!loading && !error && files.length > 0 && filteredFiles.length === 0 && (
+              <p className="text-body text-text-tertiary px-4 py-6 text-center">No matches for "{search}"</p>
             )}
             {!loading && !error && (
               <ul>
@@ -162,7 +185,7 @@ export default function FileBrowser({ isOpen, onClose, onOpenFile }: FileBrowser
                     </button>
                   </li>
                 ))}
-                {files.map(f => (
+                {filteredFiles.map(f => (
                   <li key={f}>
                     <button
                       onClick={() => openFile(f)}
