@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.2] — 2026-03-24
+
+### Fixed
+- Style dropdown now renders via portal and is no longer clipped by toolbar overflow
+- Blockquote toolbar button icon updated to quotation mark (")
+
 ## [1.4.1] — 2026-03-17
 
 ### Fixed
