@@ -315,7 +315,7 @@ export default function Toolbar({ editorRef, activeFormats, onOpenFile }: Toolba
         </svg>
       </TBtn>
       <TBtn label="Blockquote" active={activeFormats.blockquote} onMouseDown={() => cmd?.toggleBlockquote()}>
-        <span className="text-title leading-none">›</span>
+        <span className="text-title leading-none font-medium">"</span>
       </TBtn>
 
       <Divider />
