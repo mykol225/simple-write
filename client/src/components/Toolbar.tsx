@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { ActiveFormats, EditorHandle } from './editor-types'
 
 interface ToolbarProps {
@@ -33,21 +34,43 @@ interface StyleDropdownProps {
 
 function StyleDropdown({ value, onChange }: StyleDropdownProps) {
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
+  const [menuRect, setMenuRect] = useState<DOMRect | null>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!open) return
     function handleDown(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      const target = e.target as Node
+      if (
+        buttonRef.current && !buttonRef.current.contains(target) &&
+        menuRef.current && !menuRef.current.contains(target)
+      ) setOpen(false)
     }
+    function handleScrollOrResize() { setOpen(false) }
     document.addEventListener('mousedown', handleDown)
-    return () => document.removeEventListener('mousedown', handleDown)
+    window.addEventListener('scroll', handleScrollOrResize, true)
+    window.addEventListener('resize', handleScrollOrResize)
+    return () => {
+      document.removeEventListener('mousedown', handleDown)
+      window.removeEventListener('scroll', handleScrollOrResize, true)
+      window.removeEventListener('resize', handleScrollOrResize)
+    }
   }, [open])
 
+  function handleToggle(e: React.MouseEvent) {
+    e.preventDefault()
+    if (!open && buttonRef.current) {
+      setMenuRect(buttonRef.current.getBoundingClientRect())
+    }
+    setOpen(o => !o)
+  }
+
   return (
-    <div ref={ref} className="relative">
+    <div>
       <button
-        onMouseDown={(e) => { e.preventDefault(); setOpen(o => !o) }}
+        ref={buttonRef}
+        onMouseDown={handleToggle}
         aria-label="Text style"
         aria-expanded={open}
         aria-haspopup="listbox"
@@ -59,8 +82,24 @@ function StyleDropdown({ value, onChange }: StyleDropdownProps) {
         </svg>
       </button>
 
-      {open && (
-        <div role="listbox" aria-label="Text style" className="absolute top-full left-0 mt-1 z-50 bg-white border border-border rounded-md shadow-medium py-1 min-w-[160px]">
+      {open && menuRect && createPortal(
+        <div
+          ref={menuRef}
+          role="listbox"
+          aria-label="Text style"
+          style={{
+            position: 'fixed',
+            top: (() => {
+              const menuHeight = STYLE_OPTIONS.length * 32 + 8
+              return (window.innerHeight - menuRect.bottom - 4) >= menuHeight
+                ? menuRect.bottom + 4
+                : menuRect.top - menuHeight - 4
+            })(),
+            left: menuRect.left,
+            zIndex: 9999,
+          }}
+          className="bg-white border border-border rounded-md shadow-medium py-1 min-w-[160px]"
+        >
           {STYLE_OPTIONS.map(opt => (
             <button
               key={opt.value}
@@ -78,7 +117,8 @@ function StyleDropdown({ value, onChange }: StyleDropdownProps) {
               {opt.label}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
