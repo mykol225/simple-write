@@ -13,6 +13,10 @@ export interface Frontmatter {
   [key: string]: unknown
 }
 
+// Ignore file:changed events for 2.5s after a reload to suppress notification
+// loops when external tools (e.g. Obsidian Sync) fire multiple sequential writes.
+const RELOAD_COOLDOWN_MS = 2500
+
 export interface DocumentState {
   frontmatter: Frontmatter
   body: string
@@ -36,6 +40,11 @@ export function useDocument(filePath: string | null) {
   // Becomes true when the server broadcasts that the file changed externally.
   // App.tsx watches this and shows a Toast with a Reload button.
   const [externalChanged, setExternalChanged] = useState(false)
+
+  // Timestamp of the last reload. file:changed WebSocket events arriving within
+  // RELOAD_COOLDOWN_MS of a reload are suppressed — prevents notification loops
+  // when an external tool makes multiple sequential writes (e.g. sync services).
+  const lastReloadRef = useRef(0) // 0 = never reloaded; cooldown check always passes
 
   // Keep a ref so the save callback can always read the latest frontmatter
   // without becoming a stale closure.
@@ -81,7 +90,13 @@ export function useDocument(filePath: string | null) {
       ws.onmessage = (e) => {
         try {
           const { type } = JSON.parse(e.data as string)
-          if (type === 'file:changed') setExternalChanged(true)
+          if (type === 'file:changed') {
+            // Suppress events that arrive within the cooldown window after a reload.
+            // An external tool may fire multiple writes in quick succession; without
+            // this guard each write would re-trigger the notification loop.
+            if (Date.now() - lastReloadRef.current < RELOAD_COOLDOWN_MS) return
+            setExternalChanged(true)
+          }
         } catch { /* ignore malformed messages */ }
       }
 
@@ -129,6 +144,7 @@ export function useDocument(filePath: string | null) {
   const reload = useCallback(() => {
     if (!filePath) return
     setExternalChanged(false)
+    lastReloadRef.current = Date.now()  // start cooldown window
 
     fetch(`/api/document?file=${encodeURIComponent(filePath)}`)
       .then(r => {
