@@ -114,19 +114,36 @@ export default function App() {
     })
   }, [filePath, isLoading, error, frontmatter.title, frontmatter.modified])
 
+  // ── Shared status bar — always rendered on every page ────────────────────
+  // Provides the feedback trigger on Landing, Loading, Error, and Editor views.
+
+  const alwaysOnStatusBar = (
+    <StatusBar
+      appName="Simple Write"
+      getContext={() => ({
+        file:       filePath ?? null,
+        saveStatus: filePath ? saveStatus : 'idle',
+        wordCount:  body ? body.trim().split(/\s+/).filter(Boolean).length : 0,
+      })}
+    />
+  )
+
   // ── No file open — show Landing ───────────────────────────────────────────
 
   if (!filePath) {
-    return <Landing onOpenFile={openFile} />
+    return <>{<Landing onOpenFile={openFile} />}{alwaysOnStatusBar}</>
   }
 
   // ── Loading ───────────────────────────────────────────────────────────────
 
   if (isLoading) {
     return (
-      <div className="h-full flex items-center justify-center bg-surface-page">
-        <p className="text-body text-text-tertiary">Loading…</p>
-      </div>
+      <>
+        <div className="h-full flex items-center justify-center bg-surface-page">
+          <p className="text-body text-text-tertiary">Loading…</p>
+        </div>
+        {alwaysOnStatusBar}
+      </>
     )
   }
 
@@ -134,19 +151,22 @@ export default function App() {
 
   if (error) {
     return (
-      <div className="h-full flex items-center justify-center bg-surface-page">
-        <div className="text-center max-w-md">
-          <p className="text-body text-status-blocked font-medium mb-2">Could not open file</p>
-          <p className="text-label text-text-tertiary">{error}</p>
-          <p className="text-label text-text-tertiary mt-1 font-mono break-all">{filePath}</p>
-          <button
-            onClick={() => setFilePath(null)}
-            className="mt-4 text-label text-accent hover:text-accent-hover transition-colors"
-          >
-            ← Back to files
-          </button>
+      <>
+        <div className="h-full flex items-center justify-center bg-surface-page">
+          <div className="text-center max-w-md">
+            <p className="text-body text-status-blocked font-medium mb-2">Could not open file</p>
+            <p className="text-label text-text-tertiary">{error}</p>
+            <p className="text-label text-text-tertiary mt-1 font-mono break-all">{filePath}</p>
+            <button
+              onClick={() => setFilePath(null)}
+              className="mt-4 text-label text-accent hover:text-accent-hover transition-colors"
+            >
+              ← Back to files
+            </button>
+          </div>
         </div>
-      </div>
+        {alwaysOnStatusBar}
+      </>
     )
   }
 
@@ -274,14 +294,7 @@ export default function App() {
         />
       )}
 
-      <StatusBar
-        appName="Simple Write"
-        getContext={() => ({
-          file:       filePath ?? null,
-          saveStatus,
-          wordCount:  body ? body.trim().split(/\s+/).filter(Boolean).length : 0,
-        })}
-      />
+      {alwaysOnStatusBar}
 
       <ChatWidget
         title="Writing assistant"
