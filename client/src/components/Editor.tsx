@@ -123,10 +123,24 @@ function getSelectedLines(state: EditorState) {
 function setHeadingCmd(view: EditorView, level: 0 | 1 | 2 | 3 | 4 | 5 | 6) {
   const lines = getSelectedLines(view.state)
   const prefix = level === 0 ? '' : '#'.repeat(level) + ' '
-  const changes = lines.map(line => {
+  const changes = lines.flatMap(line => {
     const m = line.text.match(/^#{1,6} /)
-    if (m) return { from: line.from, to: line.from + m[0].length, insert: prefix }
-    return { from: line.from, to: line.from, insert: prefix }
+    if (m) return [{ from: line.from, to: line.from + m[0].length, insert: prefix }]
+    if (level === 0) {
+      // Also clear setext-style headings (text followed by === or --- underline).
+      // lezer-markdown parses "text\n---" as SetextHeading2, hiding the --- via
+      // HeaderMark suppression. Clicking Paragraph must remove the underline line.
+      const nextLineNum = line.number + 1
+      if (nextLineNum <= view.state.doc.lines) {
+        const nextLine = view.state.doc.line(nextLineNum)
+        if (/^(-{2,}|={2,})\s*$/.test(nextLine.text)) {
+          // Remove \n + underline line (+ trailing \n if not end of doc) for clean deletion
+          const deleteEnd = nextLine.to < view.state.doc.length ? nextLine.to + 1 : nextLine.to
+          return [{ from: line.to, to: deleteEnd, insert: '' }]
+        }
+      }
+    }
+    return [{ from: line.from, to: line.from, insert: prefix }]
   })
   view.dispatch({ changes, scrollIntoView: true })
   view.focus()
@@ -203,7 +217,10 @@ function toggleNumberedListCmd(view: EditorView) {
 function insertHorizontalRuleCmd(view: EditorView) {
   const { state } = view
   const line = state.doc.lineAt(state.selection.main.from)
-  const insert = line.text.trim() === '' ? '---\n' : '\n---\n'
+  // Always separate --- from preceding text with a blank line.
+  // Without the blank line, lezer-markdown parses "text\n---" as SetextHeading2
+  // rather than HorizontalRule, causing the paragraph to silently appear as H2.
+  const insert = line.text.trim() === '' ? '---\n' : '\n\n---\n'
   view.dispatch({
     changes: { from: line.to, to: line.to, insert },
     selection: EditorSelection.cursor(line.to + insert.length),
