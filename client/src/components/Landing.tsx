@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import FileBrowser from './FileBrowser'
+import StatusBar from '@shared/components/StatusBar'
 import { getRecents } from '../utils/recents'
 import type { RecentFile } from '../utils/recents'
 
@@ -91,5 +92,10 @@ export default function Landing({ onOpenFile }: LandingProps) {
         onOpenFile={onOpenFile}
       />
     </div>
+
+    <StatusBar
+      appName="Simple Write"
+      getContext={() => ({ view: 'landing' })}
+    />
   )
 }
