@@ -6,6 +6,7 @@ interface ToolbarProps {
   editorRef: React.RefObject<EditorHandle>
   activeFormats: ActiveFormats
   onOpenFile: () => void
+  onCloseFile?: () => void
 }
 
 // ── Style dropdown ────────────────────────────────────────────────────────────
@@ -244,7 +245,7 @@ function LinkButton({ editorRef }: LinkButtonProps) {
 
 // ── Toolbar ───────────────────────────────────────────────────────────────────
 
-export default function Toolbar({ editorRef, activeFormats, onOpenFile }: ToolbarProps) {
+export default function Toolbar({ editorRef, activeFormats, onOpenFile, onCloseFile }: ToolbarProps) {
   const cmd = editorRef.current
 
   // Style dropdown: derive current value from activeFormats
@@ -263,12 +264,20 @@ export default function Toolbar({ editorRef, activeFormats, onOpenFile }: Toolba
   return (
     <div className="flex items-center gap-0.5 px-4 py-1.5 border-b border-border bg-white shrink-0 select-none overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 
-      {/* ── Open file — far left ────────────────────────────────── */}
+      {/* ── Open file · Close file — far left ──────────────────── */}
       <TBtn label="Open file" title="Open file" onMouseDown={onOpenFile}>
         <svg width="15" height="13" viewBox="0 0 15 13" fill="none" aria-hidden="true">
           <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1H6a.5.5 0 0 1 .354.146L7.5 2.5H12.5A1.5 1.5 0 0 1 14 4v6.5A1.5 1.5 0 0 1 12.5 12h-10A1.5 1.5 0 0 1 1 10.5V2.5Z" stroke="currentColor" strokeWidth="1.1" fill="none"/>
         </svg>
       </TBtn>
+      {onCloseFile && (
+        <TBtn label="Close document" title="Close document" onMouseDown={onCloseFile}>
+          <svg width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden="true">
+            <line x1="1" y1="1" x2="8" y2="8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+            <line x1="8" y1="1" x2="1" y2="8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+          </svg>
+        </TBtn>
+      )}
 
       <Divider />
 
