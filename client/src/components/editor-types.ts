@@ -43,6 +43,8 @@ export interface EditorHandle {
   // then call link(url) after the user enters a URL.
   captureSelection(): void
   link(url: string): void
+  /** Insert a link with an explicit label. Replaces the captured/current selection. */
+  linkWithLabel(label: string, url: string): void
 
   focus(): void
   /** Returns the currently selected text, or '' if nothing is selected. */

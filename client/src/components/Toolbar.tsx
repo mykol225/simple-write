@@ -172,42 +172,71 @@ interface LinkButtonProps {
 }
 
 function LinkButton({ editorRef }: LinkButtonProps) {
-  const [open, setOpen]     = useState(false)
-  const [url, setUrl]       = useState('')
-  const popoverRef          = useRef<HTMLDivElement>(null)
-  const inputRef            = useRef<HTMLInputElement>(null)
+  const [open, setOpen]         = useState(false)
+  const [text, setText]         = useState('')
+  const [url, setUrl]           = useState('')
+  const popoverRef              = useRef<HTMLDivElement>(null)
+  const textInputRef            = useRef<HTMLInputElement>(null)
+  const urlInputRef             = useRef<HTMLInputElement>(null)
+  // Track which field should receive focus when the popover opens
+  const focusTargetRef          = useRef<'text' | 'url'>('text')
+
+  // Focus the correct input after the popover mounts (safe in concurrent rendering)
+  useEffect(() => {
+    if (!open) return
+    if (focusTargetRef.current === 'url') urlInputRef.current?.focus()
+    else textInputRef.current?.focus()
+  }, [open])
+
+  // Centralized dismiss — all close paths go through here
+  function closePopover(restoreFocus = false) {
+    setOpen(false)
+    setText('')
+    setUrl('')
+    if (restoreFocus) editorRef.current?.focus()
+  }
 
   // Close on click-outside
   useEffect(() => {
     if (!open) return
     function handleDown(e: MouseEvent) {
       if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
-        setOpen(false)
-        setUrl('')
+        closePopover()
       }
     }
     document.addEventListener('mousedown', handleDown)
     return () => document.removeEventListener('mousedown', handleDown)
   }, [open])
 
-  function handleInsert() {
-    if (!url.trim()) return
-    editorRef.current?.link(url.trim())
-    setOpen(false)
+  function handleOpen() {
+    editorRef.current?.captureSelection()
+    const selectedText = editorRef.current?.getSelection() ?? ''
+    setText(selectedText)
     setUrl('')
+    focusTargetRef.current = selectedText ? 'url' : 'text'
+    setOpen(true)
+    // Try to pre-fill URL field from clipboard
+    navigator.clipboard.readText().then(clip => {
+      if (/^https?:\/\/\S+$/.test(clip.trim())) setUrl(clip.trim())
+    }).catch(() => {})
+  }
+
+  function handleInsert() {
+    const trimmedUrl = url.trim()
+    if (!trimmedUrl) return
+    const label = text.trim() || trimmedUrl  // fall back to URL when text is empty
+    editorRef.current?.linkWithLabel(label, trimmedUrl)
+    closePopover()
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Enter')  { e.preventDefault(); handleInsert() }
+    if (e.key === 'Escape') { e.preventDefault(); closePopover(true) }
   }
 
   return (
     <div className="relative">
-      <TBtn
-        label="Insert link"
-        title="Link"
-        onMouseDown={() => {
-          editorRef.current?.captureSelection()
-          setOpen(true)
-          setTimeout(() => inputRef.current?.focus(), 0)
-        }}
-      >
+      <TBtn label="Insert link" title="Link" onMouseDown={handleOpen}>
         {/* Chain-link icon */}
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
@@ -218,22 +247,36 @@ function LinkButton({ editorRef }: LinkButtonProps) {
       {open && (
         <div
           ref={popoverRef}
-          className="absolute top-full left-0 mt-1.5 z-50 flex items-center gap-2 p-2 bg-white border border-border rounded-md shadow-medium min-w-[260px]"
+          className="absolute top-full left-0 mt-1.5 z-50 flex flex-col gap-2 p-3 bg-white border border-border rounded-md shadow-medium min-w-[280px]"
         >
-          <input
-            ref={inputRef}
-            value={url}
-            onChange={e => setUrl(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter') { e.preventDefault(); handleInsert() }
-              if (e.key === 'Escape') { setOpen(false); setUrl(''); editorRef.current?.focus() }
-            }}
-            placeholder="https://"
-            className="flex-1 text-body text-text-primary border border-border rounded-sm px-2 py-1 focus:outline-none focus:border-accent transition-colors duration-standard"
-          />
+          <div className="flex flex-col gap-1">
+            <span className="text-label text-text-tertiary select-none">Text</span>
+            <input
+              ref={textInputRef}
+              value={text}
+              onChange={e => setText(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter')  { e.preventDefault(); urlInputRef.current?.focus() }
+                if (e.key === 'Escape') { e.preventDefault(); closePopover(true) }
+              }}
+              placeholder="Link text"
+              className="text-body text-text-primary border border-border rounded-sm px-2 py-1 focus:outline-none focus:border-accent transition-colors duration-standard"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-label text-text-tertiary select-none">URL</span>
+            <input
+              ref={urlInputRef}
+              value={url}
+              onChange={e => setUrl(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="https://"
+              className="text-body text-text-primary border border-border rounded-sm px-2 py-1 focus:outline-none focus:border-accent transition-colors duration-standard"
+            />
+          </div>
           <button
             onMouseDown={e => { e.preventDefault(); handleInsert() }}
-            className="text-label font-medium bg-accent text-white px-3 py-1 rounded-sm hover:bg-accent-hover transition-colors duration-micro shrink-0"
+            className="text-label font-medium bg-accent text-white px-3 py-1.5 rounded-sm hover:bg-accent-hover transition-colors duration-micro"
           >
             Insert
           </button>

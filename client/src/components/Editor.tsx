@@ -258,6 +258,26 @@ function linkCmd(
   view.focus()
 }
 
+function linkWithLabelCmd(
+  view: EditorView,
+  label: string,
+  url: string,
+  capturedRangeRef: MutableRefObject<{ from: number; to: number } | null>,
+) {
+  const range = capturedRangeRef.current ?? view.state.selection.main
+  capturedRangeRef.current = null
+
+  const { from, to } = range
+  const md = `[${label}](${url})`
+
+  view.dispatch({
+    changes: { from, to, insert: md },
+    selection: EditorSelection.cursor(from + md.length),
+    scrollIntoView: true,
+  })
+  view.focus()
+}
+
 // ── Editor component ──────────────────────────────────────────────────────────
 
 const Editor = forwardRef<EditorHandle, Props>(function Editor(
@@ -283,8 +303,9 @@ const Editor = forwardRef<EditorHandle, Props>(function Editor(
     toggleBulletList()   { if (viewRef.current) toggleBulletListCmd(viewRef.current) },
     toggleNumberedList() { if (viewRef.current) toggleNumberedListCmd(viewRef.current) },
     insertHorizontalRule() { if (viewRef.current) insertHorizontalRuleCmd(viewRef.current) },
-    captureSelection()   { if (viewRef.current) captureSelectionCmd(viewRef.current, capturedRangeRef) },
-    link(url)            { if (viewRef.current) linkCmd(viewRef.current, url, capturedRangeRef) },
+    captureSelection()         { if (viewRef.current) captureSelectionCmd(viewRef.current, capturedRangeRef) },
+    link(url)                  { if (viewRef.current) linkCmd(viewRef.current, url, capturedRangeRef) },
+    linkWithLabel(label, url)  { if (viewRef.current) linkWithLabelCmd(viewRef.current, label, url, capturedRangeRef) },
     focus()              { viewRef.current?.focus() },
     getSelection() {
       const view = viewRef.current
