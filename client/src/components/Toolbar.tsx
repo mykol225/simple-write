@@ -175,6 +175,8 @@ function LinkButton({ editorRef }: LinkButtonProps) {
   const [open, setOpen]         = useState(false)
   const [text, setText]         = useState('')
   const [url, setUrl]           = useState('')
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null)
+  const buttonRef               = useRef<HTMLButtonElement>(null)
   const popoverRef              = useRef<HTMLDivElement>(null)
   const textInputRef            = useRef<HTMLInputElement>(null)
   const urlInputRef             = useRef<HTMLInputElement>(null)
@@ -200,12 +202,22 @@ function LinkButton({ editorRef }: LinkButtonProps) {
   useEffect(() => {
     if (!open) return
     function handleDown(e: MouseEvent) {
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+      if (
+        popoverRef.current && !popoverRef.current.contains(e.target as Node) &&
+        buttonRef.current && !buttonRef.current.contains(e.target as Node)
+      ) {
         closePopover()
       }
     }
+    function handleScrollOrResize() { closePopover() }
     document.addEventListener('mousedown', handleDown)
-    return () => document.removeEventListener('mousedown', handleDown)
+    window.addEventListener('scroll', handleScrollOrResize, true)
+    window.addEventListener('resize', handleScrollOrResize)
+    return () => {
+      document.removeEventListener('mousedown', handleDown)
+      window.removeEventListener('scroll', handleScrollOrResize, true)
+      window.removeEventListener('resize', handleScrollOrResize)
+    }
   }, [open])
 
   function handleOpen() {
@@ -214,6 +226,7 @@ function LinkButton({ editorRef }: LinkButtonProps) {
     setText(selectedText)
     setUrl('')
     focusTargetRef.current = selectedText ? 'url' : 'text'
+    if (buttonRef.current) setAnchorRect(buttonRef.current.getBoundingClientRect())
     setOpen(true)
     // Try to pre-fill URL field from clipboard
     navigator.clipboard.readText().then(clip => {
@@ -236,18 +249,27 @@ function LinkButton({ editorRef }: LinkButtonProps) {
 
   return (
     <div className="relative">
-      <TBtn label="Insert link" title="Link" onMouseDown={handleOpen}>
-        {/* Chain-link icon */}
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-        </svg>
-      </TBtn>
+      {/* Wrap TBtn in a span so we can capture a ref to its rendered button */}
+      <span ref={buttonRef as unknown as React.RefObject<HTMLSpanElement>}>
+        <TBtn label="Insert link" title="Link" onMouseDown={handleOpen}>
+          {/* Chain-link icon */}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+          </svg>
+        </TBtn>
+      </span>
 
-      {open && (
+      {open && anchorRect && createPortal(
         <div
           ref={popoverRef}
-          className="absolute top-full left-0 mt-1.5 z-50 flex flex-col gap-2 p-3 bg-white border border-border rounded-md shadow-medium min-w-[280px]"
+          style={{
+            position: 'fixed',
+            top: anchorRect.bottom + 6,
+            left: anchorRect.left,
+            zIndex: 9999,
+          }}
+          className="flex flex-col gap-2 p-3 bg-white border border-border rounded-md shadow-medium min-w-[280px]"
         >
           <div className="flex flex-col gap-1">
             <span className="text-label text-text-tertiary select-none">Text</span>
@@ -280,7 +302,8 @@ function LinkButton({ editorRef }: LinkButtonProps) {
           >
             Insert
           </button>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

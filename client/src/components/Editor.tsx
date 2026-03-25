@@ -127,9 +127,10 @@ function setHeadingCmd(view: EditorView, level: 0 | 1 | 2 | 3 | 4 | 5 | 6) {
     const m = line.text.match(/^#{1,6} /)
     if (m) return [{ from: line.from, to: line.from + m[0].length, insert: prefix }]
     if (level === 0) {
-      // Also clear setext-style headings (text followed by === or --- underline).
-      // lezer-markdown parses "text\n---" as SetextHeading2, hiding the --- via
-      // HeaderMark suppression. Clicking Paragraph must remove the underline line.
+      // Defensive: clear setext-style underlines (=== or ---) if they somehow
+      // exist in the document. Setext heading parsing is disabled at the parser
+      // level (see { remove: ['SetextHeading'] } in the markdown() config), but
+      // documents created before the fix may still contain these patterns.
       const nextLineNum = line.number + 1
       if (nextLineNum <= view.state.doc.lines) {
         const nextLine = view.state.doc.line(nextLineNum)
@@ -381,7 +382,15 @@ const Editor = forwardRef<EditorHandle, Props>(function Editor(
           EditorView.contentAttributes.of({ spellcheck: 'true' }),
           markdown({
             base: markdownLanguage,
-            extensions: [GFM, Subscript, Superscript],
+            extensions: [
+              GFM, Subscript, Superscript,
+              // Disable Setext heading parsing ("text\n---" = H2, "text\n===" = H1).
+              // In a WYSIWYG-style editor Setext headings are a constant source of
+              // mis-parses: any --- horizontal rule immediately following text silently
+              // turns the paragraph into an H2. Removing the parser means --- is always
+              // a HorizontalRule and headings must use ATX syntax (# / ## / ###).
+              { remove: ['SetextHeading'] },
+            ],
             codeLanguages: languages,
           }),
           syntaxHighlighting(editorHighlight),
