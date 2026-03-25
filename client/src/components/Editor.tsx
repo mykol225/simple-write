@@ -1,7 +1,8 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import {
-  EditorView, keymap, placeholder,
+  EditorView, ViewPlugin, keymap, placeholder,
 } from '@codemirror/view'
+import type { ViewUpdate } from '@codemirror/view'
 import { EditorSelection, EditorState } from '@codemirror/state'
 import type { MutableRefObject } from 'react'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
@@ -309,6 +310,35 @@ const Editor = forwardRef<EditorHandle, Props>(function Editor(
             ...defaultKeymap,
             ...historyKeymap,
           ]),
+          // Scroll the outer overflow-y:auto container to keep the cursor in view.
+          // pageEditorTheme sets cm-scroller to overflow:visible so CodeMirror's
+          // internal scroll-into-view has no effect — we must do it ourselves.
+          // scrollDOM.parentElement starts above cm-scroller (CodeMirror public API).
+          ViewPlugin.fromClass(class {
+            update(update: ViewUpdate) {
+              if (!update.selectionSet && !update.docChanged) return
+              requestAnimationFrame(() => {
+                const BOTTOM_MARGIN = 40 // clears 24px status bar + breathing room
+                const TOP_MARGIN = 40    // symmetric — toolbar sits outside scroll container
+                const head = update.view.state.selection.main.head
+                const coords = update.view.coordsAtPos(head)
+                if (!coords) return
+                let el: HTMLElement | null = update.view.scrollDOM.parentElement
+                while (el) {
+                  const ov = window.getComputedStyle(el).overflowY
+                  if (ov === 'auto' || ov === 'scroll') break
+                  el = el.parentElement
+                }
+                if (!el) return
+                const rect = el.getBoundingClientRect()
+                if (coords.bottom + BOTTOM_MARGIN > rect.bottom) {
+                  el.scrollTop += coords.bottom + BOTTOM_MARGIN - rect.bottom
+                } else if (coords.top < rect.top + TOP_MARGIN) {
+                  el.scrollTop -= rect.top + TOP_MARGIN - coords.top
+                }
+              })
+            }
+          }),
           EditorView.lineWrapping,
           EditorView.contentAttributes.of({ spellcheck: 'true' }),
           markdown({
