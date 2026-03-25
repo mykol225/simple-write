@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.5.0] — 2026-03-25
+
+### Added
+- Fenced code blocks (triple backtick) now render with monospace background on content lines
+### Fixed
+- Editor auto-scrolls outer container to keep cursor visible when typing near the bottom of the viewport
+- HR separator (---) now renders as a visible 2px divider line
+- Close document button moved from header to toolbar, paired next to Open file button
+### Changed
+- View in Finder and asterisk-space bullet list confirmed working (already resolved)
+
 ## [1.4.2] — 2026-03-24
 
 ### Fixed
