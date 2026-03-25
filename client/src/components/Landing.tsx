@@ -22,6 +22,7 @@ export default function Landing({ onOpenFile }: LandingProps) {
   const recents: RecentFile[] = getRecents()
 
   return (
+    <>
     <div className="h-full flex flex-col items-center justify-center bg-surface-page px-6">
 
       {/* Wordmark */}
@@ -97,5 +98,6 @@ export default function Landing({ onOpenFile }: LandingProps) {
       appName="Simple Write"
       getContext={() => ({ view: 'landing' })}
     />
+    </>
   )
 }
