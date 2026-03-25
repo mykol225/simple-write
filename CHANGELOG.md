@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.6.0] — 2026-03-25
+
+### Fixed
+- Paragraph style incorrectly detected as H2 when text is followed by `---` separator (Setext heading misparse)
+- Paragraph option in style picker now correctly clears Setext headings by removing the underline line
+
+### Added
+- Link button now opens a two-field dialog (Text + URL) with selection pre-fill and clipboard URL pre-fill
+
 ## [1.5.0] — 2026-03-25
 
 ### Added
