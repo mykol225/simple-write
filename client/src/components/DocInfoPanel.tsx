@@ -47,11 +47,31 @@ export default function DocInfoPanel({ frontmatter, filePath, onSave, onClose, i
   const [draft, setDraft] = useState<Partial<Frontmatter>>({})
   const [copied, setCopied] = useState(false)
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout>>()
+  const panelRef = useRef<HTMLDivElement>(null)
 
   // Clear copy confirmation timer on unmount to avoid state update on an unmounted component
   useEffect(() => {
     return () => clearTimeout(copyTimeoutRef.current)
   }, [])
+
+  // Click-outside / Escape to close — avoids a full-screen backdrop that would block editor scroll
+  useEffect(() => {
+    if (!isOpen) return
+    function handleMouseDown(e: MouseEvent) {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        onClose()
+      }
+    }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('mousedown', handleMouseDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isOpen, onClose])
 
   useEffect(() => {
     if (isOpen) {
@@ -95,17 +115,10 @@ export default function DocInfoPanel({ frontmatter, filePath, onSave, onClose, i
 
   if (!isOpen) return null
 
+  // Panel — click-outside handled via mousedown listener so the editor behind can scroll freely
   return (
-    <>
-      {/* Click-outside backdrop — sits behind the panel */}
       <div
-        className="fixed inset-0 z-30"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-
-      {/* Panel */}
-      <div
+        ref={panelRef}
         role="dialog"
         aria-label="Document info"
         className="fixed inset-y-0 right-0 w-80 bg-white border-l border-border shadow-elevated z-40 flex flex-col animate-slide-in"
@@ -209,6 +222,5 @@ export default function DocInfoPanel({ frontmatter, filePath, onSave, onClose, i
 
         </div>
       </div>
-    </>
   )
 }

@@ -185,6 +185,7 @@ export default function App() {
           {/* Document info */}
           <button
             onClick={() => setDocInfoOpen(true)}
+            onMouseDown={e => e.stopPropagation()}
             title="Document info"
             aria-label="Document info"
             className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[#80786b] hover:bg-[#f5f3f0] transition-colors duration-micro"
