@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import FileBrowser from './FileBrowser'
+import FileBrowser from '@shared/components/FileBrowser'
 import StatusBar from '@shared/components/StatusBar'
 import { getRecents } from '../utils/recents'
 import type { RecentFile } from '../utils/recents'
@@ -90,7 +90,13 @@ export default function Landing({ onOpenFile }: LandingProps) {
       <FileBrowser
         isOpen={browserOpen}
         onClose={() => setBrowserOpen(false)}
-        onOpenFile={onOpenFile}
+        onSelect={onOpenFile}
+        mode="file"
+        browseEndpoint="/api/browse"
+        extensions={['.md']}
+        allowCreate
+        createEndpoint="/api/document/new"
+        storagePrefix="sw"
       />
     </div>
 

@@ -7,7 +7,7 @@ import { DEFAULT_ACTIVE_FORMATS } from './components/editor-types'
 import type { ActiveFormats } from './components/editor-types'
 import Toolbar from './components/Toolbar'
 import DocInfoPanel from './components/DocInfoPanel'
-import FileBrowser from './components/FileBrowser'
+import FileBrowser from '@shared/components/FileBrowser'
 import Landing from './components/Landing'
 import Toast from './components/Toast'
 import type { ToastData } from './components/Toast'
@@ -256,7 +256,13 @@ export default function App() {
       <FileBrowser
         isOpen={fileBrowserOpen}
         onClose={() => setFileBrowserOpen(false)}
-        onOpenFile={openFile}
+        onSelect={openFile}
+        mode="file"
+        browseEndpoint="/api/browse"
+        extensions={['.md']}
+        allowCreate
+        createEndpoint="/api/document/new"
+        storagePrefix="sw"
       />
 
       <DocInfoPanel
