@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.7.0] — 2026-03-25
+
+### Added
+- Tab bar for multi-file editing: open multiple files simultaneously, switch with click, reorder by drag, close with × or ⌘W, open new with ⌘T
+
 ## [1.6.2] — 2026-03-25
 
 ### Fixed
