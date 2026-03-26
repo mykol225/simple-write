@@ -355,8 +355,10 @@ export default function App() {
 
             <HeaderIconButton
               label="Document info"
+              active={docInfoOpen}
               isMultiTab={tabs.length >= 2}
               onClick={() => setDocInfoOpen(o => !o)}
+              onMouseDown={e => e.stopPropagation()}
             >
               <span style={{ fontSize: 13, fontWeight: 600, lineHeight: 1 }}>ⓘ</span>
             </HeaderIconButton>
