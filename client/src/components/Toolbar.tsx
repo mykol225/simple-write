@@ -379,7 +379,7 @@ export default function Toolbar({ editorRef, activeFormats }: ToolbarProps) {
         </svg>
       </TBtn>
       <TBtn label="Blockquote" active={activeFormats.blockquote} onMouseDown={() => cmd?.toggleBlockquote()}>
-        <span className="text-title leading-none font-medium">"</span>
+        <span style={{ fontSize: 20, lineHeight: 1, fontWeight: 500, display: 'block', transform: 'translateY(3px)' }}>"</span>
       </TBtn>
 
       <Divider />
