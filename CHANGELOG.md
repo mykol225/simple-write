@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.1] — 2026-03-26
+
+### Fixed
+- Paragraph style dropdown no longer stretches to viewport width (fit-content fix)
+- ⌘+B, ⌘+I, ⌘+U formatting shortcuts now work in the main editor
+- Bullet markers, ordered list markers, and horizontal rules darkened to #b3aeac
+
 ## [1.8.0] — 2026-03-26
 
 ### Added
