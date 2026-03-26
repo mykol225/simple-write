@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.8.0] — 2026-03-26
+
+### Added
+- Checkbox / task item button in toolbar: inserts `- [ ] ` on blank/paragraph lines, converts bullet/numbered lines, toggles off on existing checkbox lines
+
+### Fixed
+- Document info (ⓘ) button now toggles drawer open and closed instead of always opening
+- Quote icon in toolbar is now vertically centered and enlarged for better visual weight
+
 ## [1.7.0] — 2026-03-25
 
 ### Added
