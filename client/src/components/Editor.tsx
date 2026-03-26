@@ -375,6 +375,11 @@ const Editor = forwardRef<EditorHandle, Props>(function Editor(
             { key: 'Shift-Tab', run: dedentListItemCmd },
             { key: 'Tab',       run: () => true },
             { key: 'Shift-Tab', run: () => true },
+            // Inline formatting shortcuts — must come before defaultKeymap so the browser
+            // does not intercept ⌘+I (which triggers native italic/paragraph-highlight).
+            { key: 'Mod-b', run: (v) => { wrapInlineMark(v, '**', '**'); return true } },
+            { key: 'Mod-i', run: (v) => { wrapInlineMark(v, '_', '_');   return true } },
+            { key: 'Mod-u', run: (v) => { wrapInlineMark(v, '<u>', '</u>'); return true } },
             ...markdownKeymap,
             ...defaultKeymap,
             ...historyKeymap,
