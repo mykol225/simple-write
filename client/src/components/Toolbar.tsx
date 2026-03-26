@@ -98,6 +98,9 @@ function StyleDropdown({ value, onChange }: StyleDropdownProps) {
             })(),
             left: menuRect.left,
             zIndex: 9999,
+            // Without an explicit width, `position: fixed` defaults to viewport width,
+            // causing inner w-full buttons to expand to ~847px. fit-content sizes to text.
+            width: 'fit-content',
           }}
           className="bg-white border border-border rounded-md shadow-medium py-1 min-w-[160px]"
         >
