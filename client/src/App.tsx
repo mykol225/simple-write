@@ -8,8 +8,9 @@ import type { ActiveFormats } from './components/editor-types'
 import Toolbar from './components/Toolbar'
 import DocInfoPanel from './components/DocInfoPanel'
 import FileBrowser from '@shared/components/FileBrowser'
-import TabBar from '@shared/components/TabBar'
-import type { AppTab } from '@shared/components/TabBar'
+import AppHeader from '@shared/components/AppHeader'
+import { HeaderIconButton } from '@shared/components/AppHeader'
+import type { AppTab } from '@shared/components/AppHeader'
 import Landing from './components/Landing'
 import Toast from './components/Toast'
 import type { ToastData } from './components/Toast'
@@ -274,17 +275,16 @@ export default function App() {
   if (isLoading) {
     return (
       <div className="h-full flex flex-col bg-surface-page">
-        <header className="shrink-0 h-12 bg-white border-b border-[#ebe9e5]" />
-        {tabs.length > 1 && (
-          <TabBar
-            tabs={tabBarTabs}
-            activeId={activeTabId}
-            onSelect={switchTab}
-            onClose={closeTab}
-            onReorder={reorderTabs}
-            onAdd={() => setFileBrowserOpen(true)}
-          />
-        )}
+        <AppHeader
+          iconSrc="/icon.png"
+          iconAlt="Simple Write"
+          tabs={tabBarTabs}
+          activeTabId={activeTabId}
+          onTabSelect={switchTab}
+          onTabClose={closeTab}
+          onTabReorder={reorderTabs}
+          onTabAdd={() => setFileBrowserOpen(true)}
+        />
         <div className="flex-1 flex items-center justify-center">
           <p className="text-body text-text-tertiary">Loading…</p>
         </div>
@@ -297,17 +297,16 @@ export default function App() {
   if (error) {
     return (
       <div className="h-full flex flex-col bg-surface-page">
-        <header className="shrink-0 h-12 bg-white border-b border-[#ebe9e5]" />
-        {tabs.length > 1 && (
-          <TabBar
-            tabs={tabBarTabs}
-            activeId={activeTabId}
-            onSelect={switchTab}
-            onClose={closeTab}
-            onReorder={reorderTabs}
-            onAdd={() => setFileBrowserOpen(true)}
-          />
-        )}
+        <AppHeader
+          iconSrc="/icon.png"
+          iconAlt="Simple Write"
+          tabs={tabBarTabs}
+          activeTabId={activeTabId}
+          onTabSelect={switchTab}
+          onTabClose={closeTab}
+          onTabReorder={reorderTabs}
+          onTabAdd={() => setFileBrowserOpen(true)}
+        />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center max-w-md">
             <p className="text-body text-status-blocked font-medium mb-2">Could not open file</p>
@@ -330,79 +329,54 @@ export default function App() {
   return (
     <div className="h-full flex flex-col bg-white">
 
-      {/* Top bar — logo left · title center · controls right */}
-      <header className="shrink-0 h-12 bg-white border-b border-[#ebe9e5] relative">
-
-        {/* Left: logo · version · badge */}
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pl-4">
-          <img src="/logo.png" alt="Simple Write" className="h-5 w-auto" />
-          <span className="text-[12px] text-[#9ca3af] font-normal">0.5</span>
-          <span className="text-[11px] font-medium text-[#92400e] bg-[#fef3c7] px-1.5 py-[2px] rounded-full leading-none whitespace-nowrap">Alpha</span>
-        </div>
-
-        {/* Center: document title — only shown when single tab (tab bar shows title otherwise) */}
-        {tabs.length <= 1 && (
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-4">
-            <span className="text-[12px] text-[#a8a28b] whitespace-nowrap">
-              {frontmatter?.title || filePath.split('/').pop()}
+      {/* Unified header — icon · tabs · actions */}
+      <AppHeader
+        iconSrc="/icon.png"
+        iconAlt="Simple Write"
+        tabs={tabBarTabs}
+        activeTabId={activeTabId}
+        onTabSelect={switchTab}
+        onTabClose={closeTab}
+        onTabReorder={reorderTabs}
+        onTabAdd={() => setFileBrowserOpen(true)}
+        renderActions={() => (
+          <>
+            <span
+              style={{
+                fontSize: 11,
+                color: '#9ca3af',
+                transition: 'opacity 150ms',
+                opacity: saveStatus === 'idle' ? 0 : 1,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {saveStatus === 'saving' ? 'Saving…' : 'Saved'}
             </span>
-          </div>
+
+            <HeaderIconButton
+              label="Document info"
+              isMultiTab={tabs.length >= 2}
+              onClick={() => setDocInfoOpen(o => !o)}
+            >
+              <span style={{ fontSize: 13, fontWeight: 600, lineHeight: 1 }}>ⓘ</span>
+            </HeaderIconButton>
+
+            <HeaderIconButton
+              label={toolbarOpen ? 'Hide controls' : 'Show controls'}
+              active={toolbarOpen}
+              isMultiTab={tabs.length >= 2}
+              onClick={() => setToolbarOpen(o => !o)}
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M1 3h12M1 7h12M1 11h12" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round"/>
+                <circle cx="4"  cy="3"  r="1.5" fill="white" stroke="currentColor" strokeWidth="1.25"/>
+                <circle cx="10" cy="7"  r="1.5" fill="white" stroke="currentColor" strokeWidth="1.25"/>
+                <circle cx="6"  cy="11" r="1.5" fill="white" stroke="currentColor" strokeWidth="1.25"/>
+              </svg>
+            </HeaderIconButton>
+          </>
         )}
-
-        {/* Right: save status · info · toolbar toggle */}
-        <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-[9px] pr-4">
-          <span
-            className={`text-[11px] text-[#9ca3af] transition-opacity duration-standard ${
-              saveStatus === 'idle' ? 'opacity-0' : 'opacity-100'
-            }`}
-          >
-            {saveStatus === 'saving' ? 'Saving…' : 'Saved'}
-          </span>
-
-          {/* Document info */}
-          <button
-            onClick={() => setDocInfoOpen(true)}
-            onMouseDown={e => e.stopPropagation()}
-            title="Document info"
-            aria-label="Document info"
-            className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[#80786b] hover:bg-[#f5f3f0] transition-colors duration-micro"
-          >
-            <span className="text-[13px] font-semibold leading-none">ⓘ</span>
-          </button>
-
-          {/* Toolbar toggle */}
-          <button
-            onClick={() => setToolbarOpen(o => !o)}
-            title={toolbarOpen ? 'Hide controls' : 'Show controls'}
-            aria-label={toolbarOpen ? 'Hide controls' : 'Show controls'}
-            className={`w-7 h-7 rounded-[6px] flex items-center justify-center transition-colors duration-micro ${
-              toolbarOpen
-                ? 'bg-[#fffcf1] text-[#92400e]'
-                : 'text-[#80786b] hover:bg-[#f5f3f0]'
-            }`}
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-              <path d="M1 3h12M1 7h12M1 11h12" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round"/>
-              <circle cx="4"  cy="3"  r="1.5" fill="white" stroke="currentColor" strokeWidth="1.25"/>
-              <circle cx="10" cy="7"  r="1.5" fill="white" stroke="currentColor" strokeWidth="1.25"/>
-              <circle cx="6"  cy="11" r="1.5" fill="white" stroke="currentColor" strokeWidth="1.25"/>
-            </svg>
-          </button>
-        </div>
-
-      </header>
-
-      {/* Tab bar — shown when 2+ files are open */}
-      {tabs.length >= 1 && (
-        <TabBar
-          tabs={tabBarTabs}
-          activeId={activeTabId}
-          onSelect={switchTab}
-          onClose={closeTab}
-          onReorder={reorderTabs}
-          onAdd={() => setFileBrowserOpen(true)}
-        />
-      )}
+      />
 
       {/* Formatting toolbar — collapses smoothly via max-height */}
       <div
@@ -415,8 +389,6 @@ export default function App() {
         <Toolbar
           editorRef={editorRef}
           activeFormats={activeFormats}
-          onOpenFile={() => setFileBrowserOpen(true)}
-          onCloseFile={() => activeTabId && closeTab(activeTabId)}
         />
       </div>
 
@@ -467,6 +439,9 @@ export default function App() {
 
       <StatusBar
         appName="Simple Write"
+        appLabel="Simple Write"
+        version="0.5"
+        stage="Alpha"
         getContext={() => ({
           file:       filePath ?? null,
           saveStatus,
