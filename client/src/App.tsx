@@ -8,6 +8,8 @@ import type { ActiveFormats } from './components/editor-types'
 import Toolbar from './components/Toolbar'
 import DocInfoPanel from './components/DocInfoPanel'
 import FileBrowser from '@shared/components/FileBrowser'
+import TabBar from '@shared/components/TabBar'
+import type { AppTab } from '@shared/components/TabBar'
 import Landing from './components/Landing'
 import Toast from './components/Toast'
 import type { ToastData } from './components/Toast'
@@ -15,13 +17,76 @@ import { addToRecents } from './utils/recents'
 import StatusBar from '@shared/components/StatusBar'
 import ChatWidget from '@shared/components/ChatWidget'
 
+// ── Tab types ─────────────────────────────────────────────────────────────────
+
+interface WriteTab {
+  id: string
+  filePath: string
+  title: string
+}
+
+function loadTabs(): WriteTab[] {
+  try {
+    const saved = localStorage.getItem('sw:tabs')
+    return saved ? (JSON.parse(saved) as WriteTab[]) : []
+  } catch { return [] }
+}
+
+function loadActiveTabId(): string | null {
+  return localStorage.getItem('sw:activeTab')
+}
+
+// ── App ───────────────────────────────────────────────────────────────────────
+
 export default function App() {
-  // filePath is mutable — changes when the user opens a different file.
-  // Initialised from ?file= so direct URLs and bookmarks work.
-  const [filePath, setFilePath] = useState<string | null>(() => {
-    return new URLSearchParams(window.location.search).get('file')
+  // ── Tab state ─────────────────────────────────────────────────────────────
+  const [tabs, setTabs] = useState<WriteTab[]>(() => {
+    const saved = loadTabs()
+    // Migrate from old single-file URL state on first load
+    if (saved.length === 0) {
+      const urlFile = new URLSearchParams(window.location.search).get('file')
+      if (urlFile) {
+        return [{ id: crypto.randomUUID(), filePath: urlFile, title: urlFile.split('/').pop() ?? '' }]
+      }
+    }
+    return saved
   })
 
+  const [activeTabId, setActiveTabId] = useState<string | null>(() => {
+    const saved = loadTabs()
+    const savedActive = loadActiveTabId()
+    // Migrate from URL state
+    if (saved.length === 0) {
+      const urlFile = new URLSearchParams(window.location.search).get('file')
+      if (urlFile) return null // will be set after tabs are created below
+    }
+    // Verify the saved active tab still exists
+    if (savedActive && saved.some(t => t.id === savedActive)) return savedActive
+    return saved[0]?.id ?? null
+  })
+
+  // Correct activeTabId if tabs were just initialized from URL migration
+  useEffect(() => {
+    if (tabs.length > 0 && !activeTabId) {
+      setActiveTabId(tabs[0].id)
+    }
+  }, []) // intentionally only on mount
+
+  // Persist tabs to localStorage
+  useEffect(() => {
+    localStorage.setItem('sw:tabs', JSON.stringify(tabs))
+  }, [tabs])
+
+  useEffect(() => {
+    if (activeTabId) localStorage.setItem('sw:activeTab', activeTabId)
+    else localStorage.removeItem('sw:activeTab')
+  }, [activeTabId])
+
+  // Derived: active file path
+  const activeTab = tabs.find(t => t.id === activeTabId) ?? null
+  const filePath = activeTab?.filePath ?? null
+
+  // ── File state (single document at a time) ────────────────────────────────
   const [fileBrowserOpen, setFileBrowserOpen] = useState(false)
 
   const { frontmatter, body, isLoading, error, save, reload, externalChanged } = useDocument(filePath)
@@ -37,29 +102,122 @@ export default function App() {
   bodyRef.current        = body
   frontmatterRef.current = frontmatter
 
-  // ── Open a file ───────────────────────────────────────────────────────────
-  // Updates the URL so the session is bookmarkable, then switches the editor.
+  // ── Tab management ────────────────────────────────────────────────────────
 
   const openFile = useCallback((path: string) => {
     const url = new URL(window.location.href)
     url.searchParams.set('file', path)
     history.pushState({}, '', url.toString())
-    setFilePath(path)
+
+    // If already open in a tab, just switch to it
+    const existing = tabs.find(t => t.filePath === path)
+    if (existing) {
+      setActiveTabId(existing.id)
+      setFileBrowserOpen(false)
+      return
+    }
+
+    // Create a new tab
+    const newTab: WriteTab = {
+      id: crypto.randomUUID(),
+      filePath: path,
+      title: path.split('/').pop() ?? '',
+    }
+    setTabs(prev => [...prev, newTab])
+    setActiveTabId(newTab.id)
     setFileBrowserOpen(false)
+  }, [tabs])
+
+  const closeTab = useCallback((id: string) => {
+    setTabs(prev => {
+      const idx = prev.findIndex(t => t.id === id)
+      const next = prev.filter(t => t.id !== id)
+
+      if (id === activeTabId) {
+        const newActiveTab = next[Math.max(0, idx - 1)] ?? null
+        if (newActiveTab) {
+          setActiveTabId(newActiveTab.id)
+          const url = new URL(window.location.href)
+          url.searchParams.set('file', newActiveTab.filePath)
+          history.pushState({}, '', url.toString())
+        } else {
+          setActiveTabId(null)
+          history.pushState({}, '', window.location.pathname)
+        }
+      }
+
+      return next
+    })
+  }, [activeTabId])
+
+  const switchTab = useCallback((id: string) => {
+    const tab = tabs.find(t => t.id === id)
+    if (!tab) return
+    setActiveTabId(id)
+    const url = new URL(window.location.href)
+    url.searchParams.set('file', tab.filePath)
+    history.pushState({}, '', url.toString())
+  }, [tabs])
+
+  const reorderTabs = useCallback((dragId: string, beforeId: string) => {
+    setTabs(prev => {
+      const dragIdx = prev.findIndex(t => t.id === dragId)
+      const beforeIdx = prev.findIndex(t => t.id === beforeId)
+      if (dragIdx === -1 || beforeIdx === -1) return prev
+      const next = [...prev]
+      const [removed] = next.splice(dragIdx, 1)
+      // After removing the dragged item, recalculate target index
+      const adjustedBefore = dragIdx < beforeIdx ? beforeIdx - 1 : beforeIdx
+      next.splice(adjustedBefore, 0, removed)
+      return next
+    })
   }, [])
+
+  // Update tab title when the document's frontmatter title loads
+  useEffect(() => {
+    if (!activeTabId || !filePath) return
+    const title = frontmatter?.title || filePath.split('/').pop() || ''
+    setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, title } : t))
+  }, [frontmatter?.title, filePath, activeTabId])
+
+  // ── Keyboard shortcuts ────────────────────────────────────────────────────
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!e.metaKey) return
+      if (e.key === 'w') {
+        // Don't intercept if focused inside a text input (let browser handle)
+        const target = e.target as HTMLElement
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
+        e.preventDefault()
+        if (activeTabId) closeTab(activeTabId)
+      } else if (e.key === 't') {
+        const target = e.target as HTMLElement
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
+        e.preventDefault()
+        setFileBrowserOpen(true)
+      }
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [activeTabId, closeTab])
+
+  // ── Build tab list for TabBar ─────────────────────────────────────────────
+
+  const tabBarTabs: AppTab[] = tabs.map(t => ({
+    id: t.id,
+    label: t.title || t.filePath.split('/').pop() || 'Untitled',
+    isDirty: t.id === activeTabId && saveStatus === 'saving',
+  }))
 
   // ── Save helpers ─────────────────────────────────────────────────────────
 
-  // H1 title sync — extract the first # heading from the markdown on every
-  // save and pass it as a frontmatter override so frontmatter.title stays
-  // in sync without the user having to edit it manually.
   const saveWithTitleSync = useCallback(async (markdown: string) => {
     const h1 = markdown.match(/^#\s+(.+?)$/m)
     const title = h1 ? h1[1].trim() : undefined
     return save(markdown, title !== undefined ? { title } : undefined)
   }, [save])
 
-  // Save only frontmatter (from DocInfoPanel) — body stays unchanged.
   const saveFrontmatter = useCallback(
     (fm: Partial<Frontmatter>) => save(bodyRef.current, fm),
     [save],
@@ -67,28 +225,20 @@ export default function App() {
 
   // ── Side effects ──────────────────────────────────────────────────────────
 
-  // Reflect document title in the browser tab
   useEffect(() => {
     const name = frontmatter?.title || filePath?.split('/').pop() || 'Untitled'
     document.title = `${name} — Simple Write`
   }, [frontmatter?.title, filePath])
 
-  // Auto-fade the "Saved" indicator after 2s
   useEffect(() => {
     if (saveStatus !== 'saved') return
     const t = setTimeout(() => setSaveStatus('idle'), 2000)
     return () => clearTimeout(t)
   }, [saveStatus])
 
-  // Keep a stable ref so the external-change effect can read saveStatus without
-  // including it as a dependency (which would cause the effect to re-run every
-  // time the user types).
   const saveStatusRef = useRef(saveStatus)
   saveStatusRef.current = saveStatus
 
-  // Handle external file changes (Phase 5.5).
-  // If the user has no unsaved changes in flight → reload silently, no toast.
-  // If a save is pending → show a toast so the user can decide.
   useEffect(() => {
     if (!externalChanged) return
     if (saveStatusRef.current === 'saving') {
@@ -100,11 +250,10 @@ export default function App() {
         },
       })
     } else {
-      reload() // silent — no pending changes to lose
+      reload()
     }
   }, [externalChanged, reload])
 
-  // Track recently-opened files for the Landing page
   useEffect(() => {
     if (!filePath || isLoading || error) return
     addToRecents({
@@ -124,8 +273,21 @@ export default function App() {
 
   if (isLoading) {
     return (
-      <div className="h-full flex items-center justify-center bg-surface-page">
-        <p className="text-body text-text-tertiary">Loading…</p>
+      <div className="h-full flex flex-col bg-surface-page">
+        <header className="shrink-0 h-12 bg-white border-b border-[#ebe9e5]" />
+        {tabs.length > 1 && (
+          <TabBar
+            tabs={tabBarTabs}
+            activeId={activeTabId}
+            onSelect={switchTab}
+            onClose={closeTab}
+            onReorder={reorderTabs}
+            onAdd={() => setFileBrowserOpen(true)}
+          />
+        )}
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-body text-text-tertiary">Loading…</p>
+        </div>
       </div>
     )
   }
@@ -134,17 +296,30 @@ export default function App() {
 
   if (error) {
     return (
-      <div className="h-full flex items-center justify-center bg-surface-page">
-        <div className="text-center max-w-md">
-          <p className="text-body text-status-blocked font-medium mb-2">Could not open file</p>
-          <p className="text-label text-text-tertiary">{error}</p>
-          <p className="text-label text-text-tertiary mt-1 font-mono break-all">{filePath}</p>
-          <button
-            onClick={() => setFilePath(null)}
-            className="mt-4 text-label text-accent hover:text-accent-hover transition-colors"
-          >
-            ← Back to files
-          </button>
+      <div className="h-full flex flex-col bg-surface-page">
+        <header className="shrink-0 h-12 bg-white border-b border-[#ebe9e5]" />
+        {tabs.length > 1 && (
+          <TabBar
+            tabs={tabBarTabs}
+            activeId={activeTabId}
+            onSelect={switchTab}
+            onClose={closeTab}
+            onReorder={reorderTabs}
+            onAdd={() => setFileBrowserOpen(true)}
+          />
+        )}
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center max-w-md">
+            <p className="text-body text-status-blocked font-medium mb-2">Could not open file</p>
+            <p className="text-label text-text-tertiary">{error}</p>
+            <p className="text-label text-text-tertiary mt-1 font-mono break-all">{filePath}</p>
+            <button
+              onClick={() => activeTabId && closeTab(activeTabId)}
+              className="mt-4 text-label text-accent hover:text-accent-hover transition-colors"
+            >
+              ← Close tab
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -165,12 +340,14 @@ export default function App() {
           <span className="text-[11px] font-medium text-[#92400e] bg-[#fef3c7] px-1.5 py-[2px] rounded-full leading-none whitespace-nowrap">Alpha</span>
         </div>
 
-        {/* Center: document title — truly centered in the bar */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-4">
-          <span className="text-[12px] text-[#a8a28b] whitespace-nowrap">
-            {frontmatter?.title || filePath.split('/').pop()}
-          </span>
-        </div>
+        {/* Center: document title — only shown when single tab (tab bar shows title otherwise) */}
+        {tabs.length <= 1 && (
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-4">
+            <span className="text-[12px] text-[#a8a28b] whitespace-nowrap">
+              {frontmatter?.title || filePath.split('/').pop()}
+            </span>
+          </div>
+        )}
 
         {/* Right: save status · info · toolbar toggle */}
         <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-[9px] pr-4">
@@ -215,9 +392,19 @@ export default function App() {
 
       </header>
 
-      {/* Formatting toolbar — collapses smoothly via max-height.
-          overflow is visible when open so the style dropdown (absolutely positioned)
-          can escape the container; hidden only during/after collapse to clip content. */}
+      {/* Tab bar — shown when 2+ files are open */}
+      {tabs.length >= 1 && (
+        <TabBar
+          tabs={tabBarTabs}
+          activeId={activeTabId}
+          onSelect={switchTab}
+          onClose={closeTab}
+          onReorder={reorderTabs}
+          onAdd={() => setFileBrowserOpen(true)}
+        />
+      )}
+
+      {/* Formatting toolbar — collapses smoothly via max-height */}
       <div
         style={{
           maxHeight: toolbarOpen ? '48px' : '0',
@@ -229,10 +416,7 @@ export default function App() {
           editorRef={editorRef}
           activeFormats={activeFormats}
           onOpenFile={() => setFileBrowserOpen(true)}
-          onCloseFile={() => {
-            history.pushState({}, '', window.location.pathname)
-            setFilePath(null)
-          }}
+          onCloseFile={() => activeTabId && closeTab(activeTabId)}
         />
       </div>
 
