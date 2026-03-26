@@ -230,6 +230,35 @@ function insertHorizontalRuleCmd(view: EditorView) {
   view.focus()
 }
 
+function toggleCheckboxCmd(view: EditorView) {
+  const lines = getSelectedLines(view.state)
+  const checkRe = /^- \[[ xX]\] / // GFM supports [x] and [X] as checked states
+  const bulletRe = /^[-*+] /
+  const numRe = /^\d+\. /
+  const allCheck = lines.every(l => checkRe.test(l.text))
+
+  const changes = lines.flatMap(line => {
+    if (allCheck) {
+      // Remove checkbox prefix, leaving plain text
+      return [{ from: line.from, to: line.from + line.text.match(checkRe)![0].length, insert: '' }]
+    }
+    const bulletMatch = line.text.match(bulletRe)
+    if (bulletMatch) {
+      // Replace bullet with checkbox
+      return [{ from: line.from, to: line.from + bulletMatch[0].length, insert: '- [ ] ' }]
+    }
+    const numMatch = line.text.match(numRe)
+    if (numMatch) {
+      // Replace numbered prefix with checkbox
+      return [{ from: line.from, to: line.from + numMatch[0].length, insert: '- [ ] ' }]
+    }
+    // Plain line — prepend checkbox
+    return [{ from: line.from, to: line.from, insert: '- [ ] ' }]
+  })
+  view.dispatch({ changes, scrollIntoView: true })
+  view.focus()
+}
+
 function captureSelectionCmd(
   view: EditorView,
   capturedRangeRef: MutableRefObject<{ from: number; to: number } | null>,
@@ -304,6 +333,7 @@ const Editor = forwardRef<EditorHandle, Props>(function Editor(
     toggleBulletList()   { if (viewRef.current) toggleBulletListCmd(viewRef.current) },
     toggleNumberedList() { if (viewRef.current) toggleNumberedListCmd(viewRef.current) },
     insertHorizontalRule() { if (viewRef.current) insertHorizontalRuleCmd(viewRef.current) },
+    toggleCheckbox()       { if (viewRef.current) toggleCheckboxCmd(viewRef.current) },
     captureSelection()         { if (viewRef.current) captureSelectionCmd(viewRef.current, capturedRangeRef) },
     link(url)                  { if (viewRef.current) linkCmd(viewRef.current, url, capturedRangeRef) },
     linkWithLabel(label, url)  { if (viewRef.current) linkWithLabelCmd(viewRef.current, label, url, capturedRangeRef) },

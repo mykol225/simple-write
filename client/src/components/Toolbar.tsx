@@ -5,8 +5,8 @@ import type { ActiveFormats, EditorHandle } from './editor-types'
 interface ToolbarProps {
   editorRef: React.RefObject<EditorHandle>
   activeFormats: ActiveFormats
-  onOpenFile: () => void
-  onCloseFile?: () => void
+  onOpenFile?: never   // removed — handled by AppHeader
+  onCloseFile?: never  // removed — handled by AppHeader
 }
 
 // ── Style dropdown ────────────────────────────────────────────────────────────
@@ -311,7 +311,7 @@ function LinkButton({ editorRef }: LinkButtonProps) {
 
 // ── Toolbar ───────────────────────────────────────────────────────────────────
 
-export default function Toolbar({ editorRef, activeFormats, onOpenFile, onCloseFile }: ToolbarProps) {
+export default function Toolbar({ editorRef, activeFormats }: ToolbarProps) {
   const cmd = editorRef.current
 
   // Style dropdown: derive current value from activeFormats
@@ -329,23 +329,6 @@ export default function Toolbar({ editorRef, activeFormats, onOpenFile, onCloseF
 
   return (
     <div className="flex items-center gap-0.5 px-4 py-1.5 border-b border-border bg-white shrink-0 select-none overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-
-      {/* ── Open file · Close file — far left ──────────────────── */}
-      <TBtn label="Open file" title="Open file" onMouseDown={onOpenFile}>
-        <svg width="15" height="13" viewBox="0 0 15 13" fill="none" aria-hidden="true">
-          <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1H6a.5.5 0 0 1 .354.146L7.5 2.5H12.5A1.5 1.5 0 0 1 14 4v6.5A1.5 1.5 0 0 1 12.5 12h-10A1.5 1.5 0 0 1 1 10.5V2.5Z" stroke="currentColor" strokeWidth="1.1" fill="none"/>
-        </svg>
-      </TBtn>
-      {onCloseFile && (
-        <TBtn label="Close document" title="Close document" onMouseDown={onCloseFile}>
-          <svg width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden="true">
-            <line x1="1" y1="1" x2="8" y2="8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-            <line x1="8" y1="1" x2="1" y2="8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-          </svg>
-        </TBtn>
-      )}
-
-      <Divider />
 
       {/* ── Style dropdown ─────────────────────────────────────── */}
       <StyleDropdown value={styleValue} onChange={handleStyleChange} />
@@ -368,7 +351,7 @@ export default function Toolbar({ editorRef, activeFormats, onOpenFile, onCloseF
 
       <Divider />
 
-      {/* ── Block: Bullet, Numbered, Blockquote ───────────────── */}
+      {/* ── Block: Bullet, Numbered, Checkbox, Blockquote ──── */}
       <TBtn label="Bullet list" active={activeFormats.bulletList} onMouseDown={() => cmd?.toggleBulletList()}>
         <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
           <circle cx="2" cy="4.5" r="1.25" fill="currentColor"/>
@@ -387,6 +370,12 @@ export default function Toolbar({ editorRef, activeFormats, onOpenFile, onCloseF
           <rect x="6" y="6.75" width="7" height="1.5" rx="0.75" fill="currentColor"/>
           <text x="1" y="11.5" fontSize="4.5" fill="currentColor" fontFamily="monospace">3.</text>
           <rect x="6" y="9.75" width="7" height="1.5" rx="0.75" fill="currentColor"/>
+        </svg>
+      </TBtn>
+      <TBtn label="Checkbox / task item" onMouseDown={() => cmd?.toggleCheckbox()}>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <rect x="1" y="1" width="12" height="12" rx="2.5" stroke="currentColor" strokeWidth="1.3"/>
+          <path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       </TBtn>
       <TBtn label="Blockquote" active={activeFormats.blockquote} onMouseDown={() => cmd?.toggleBlockquote()}>

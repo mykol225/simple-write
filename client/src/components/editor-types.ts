@@ -37,6 +37,7 @@ export interface EditorHandle {
   toggleBulletList(): void
   toggleNumberedList(): void
   insertHorizontalRule(): void
+  toggleCheckbox(): void
 
   // ── Link (two-phase) ────────────────────────────────────────────────────────
   // Call captureSelection() on the link button's mousedown (before editor blur),
