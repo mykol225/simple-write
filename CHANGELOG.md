@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.2] — 2026-03-25
+
+### Fixed
+- External change notification loop — clicking Reload no longer causes the toast to reappear repeatedly (added 2.5s cooldown after reload to suppress echoed file:changed events from sync services)
+
 ## [1.6.0] — 2026-03-25
 
 ### Fixed
